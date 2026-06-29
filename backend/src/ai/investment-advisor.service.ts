@@ -9,9 +9,14 @@ export class InvestmentAdvisorService {
   private client: Anthropic;
 
   constructor(private config: ConfigService) {
+    // Claude API 클라이언트 초기화 (ANTHROPIC_API_KEY 환경변수 사용)
     this.client = new Anthropic({ apiKey: this.config.get('ANTHROPIC_API_KEY') });
   }
 
+  /**
+   * Finnhub에서 글로벌 경제 뉴스 가져오기
+   * 실패 시 기본 텍스트로 대체 (Claude 호출은 계속 진행)
+   */
   async getMarketNews(): Promise<string> {
     try {
       const token = this.config.get('FINNHUB_TOKEN');
@@ -28,15 +33,24 @@ export class InvestmentAdvisorService {
     }
   }
 
+  /**
+   * AI 투자 제안 생성
+   * 1. Finnhub에서 최신 뉴스 수집
+   * 2. 사용자 관심사 + 뉴스를 Claude에 전달
+   * 3. 구조화된 JSON 응답 파싱 후 반환
+   *
+   * 프론트에서 30분 캐시(staleTime)로 Claude 호출 빈도 제한
+   */
   async getAdvice(interests: string[], surveyResult: any): Promise<{
-    headline: string;
-    suggestion: string;
-    portfolioIdea: string;
-    riskNote: string;
-    newsContext: string;
+    headline: string;     // 한 줄 시장 요약
+    suggestion: string;   // 투자 제안 (2-3문장)
+    portfolioIdea: string; // 구체적 포트폴리오 비중
+    riskNote: string;     // 주의할 리스크
+    newsContext: string;  // 뉴스 핵심 포인트
   }> {
     const news = await this.getMarketNews().catch(() => '뉴스 데이터를 가져오지 못했습니다.');
 
+    // 내부 코드(STOCK_KR 등)를 사람이 읽을 수 있는 한국어로 변환
     const interestLabel = interests.map((i) => ({
       STOCK_KR: '국내주식',
       STOCK_US: '해외주식',
@@ -73,8 +87,10 @@ ${news}
 
     const text = (message.content[0] as any).text;
     try {
+      // Claude가 올바른 JSON을 반환하면 그대로 파싱
       return JSON.parse(text);
     } catch {
+      // JSON 파싱 실패 시 텍스트를 suggestion 필드에 넣어 안전하게 반환
       return {
         headline: '시장 분석 중',
         suggestion: text,
