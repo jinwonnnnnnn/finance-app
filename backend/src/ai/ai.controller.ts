@@ -1,11 +1,15 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AiService } from './ai.service';
+import { InvestmentAdvisorService } from './investment-advisor.service';
 
 @Controller('ai')
 @UseGuards(AuthGuard('jwt'))
 export class AiController {
-  constructor(private aiService: AiService) {}
+  constructor(
+    private aiService: AiService,
+    private advisorService: InvestmentAdvisorService,
+  ) {}
 
   @Post('explain')
   explain(@Body() body: { term: string; context?: string }) {
@@ -15,5 +19,11 @@ export class AiController {
   @Post('recommend')
   recommend(@Body() body: { surveyResult: any }) {
     return this.aiService.recommend(body.surveyResult);
+  }
+
+  @Get('investment-advice')
+  getInvestmentAdvice(@Req() req: any) {
+    const { interests, surveyResult } = req.user;
+    return this.advisorService.getAdvice(interests ?? [], surveyResult);
   }
 }

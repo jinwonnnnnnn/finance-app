@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../lib/api';
 import Navbar from '../../components/layout/Navbar';
 import StockCard from '../../components/ui/StockCard';
+import InvestmentAdviceCard from '../../components/ui/InvestmentAdviceCard';
 
 const POPULAR_SYMBOLS = [
   { symbol: 'AAPL', name: 'Apple', market: 'US' },
@@ -47,6 +48,12 @@ export default function DashboardPage() {
             ))}
           </p>
         </motion.section>
+
+        {/* AI 투자 제안 */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-white mb-4">🤖 지금 이런 투자는 어떠세요?</h2>
+          <InvestmentAdviceCard />
+        </section>
 
         {/* 관심종목 */}
         <section className="mb-8">
