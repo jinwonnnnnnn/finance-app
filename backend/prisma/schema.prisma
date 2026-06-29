@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  password     String?
+  nickname     String
+  provider     String      @default("local")
+  providerId   String?
+  surveyDone   Boolean     @default(false)
+  surveyResult Json?
+  interests    String[]
+  watchlist    Watchlist[]
+  alerts       Alert[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("users")
+}
+
+model Glossary {
+  id       Int    @id @default(autoincrement())
+  term     String @unique
+  simple   String
+  detail   String
+  example  String?
+  category String
+  source   String
+
+  @@map("glossary")
+}
+
+model Watchlist {
+  id     Int    @id @default(autoincrement())
+  userId String
+  symbol String
+  name   String
+  market String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@map("watchlist")
+}
+
+model Alert {
+  id          Int      @id @default(autoincrement())
+  userId      String
+  symbol      String
+  targetPrice Float
+  direction   String
+  triggered   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("alerts")
+}

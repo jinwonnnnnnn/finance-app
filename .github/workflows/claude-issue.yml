@@ -1,0 +1,36 @@
+name: Claude Loop Engineering
+
+# ─── TRIGGER ───────────────────────────────────────────────────
+# 이슈에 'claude' 라벨이 붙거나, 이슈 코멘트에 @claude 멘션 시 실행
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+# ─── ACTION ────────────────────────────────────────────────────
+jobs:
+  claude-implement:
+    # 'claude' 라벨이 붙은 이슈이거나, 코멘트에 @claude 포함된 경우만 실행
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && !github.event.issue.pull_request)
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Claude Code — Issue 구현
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # 이슈 내용을 읽고 구현 후 PR 자동 생성
+          github_token: ${{ secrets.GITHUB_TOKEN }}
