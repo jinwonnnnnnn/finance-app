@@ -7,6 +7,7 @@ import { StockModule } from './stock/stock.module';
 import { GlossaryModule } from './glossary/glossary.module';
 import { AiModule } from './ai/ai.module';
 import { WatchlistModule } from './watchlist/watchlist.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WatchlistModule } from './watchlist/watchlist.module';
     GlossaryModule,
     AiModule,
     WatchlistModule,
+    NewsModule,
   ],
 })
 export class AppModule {}

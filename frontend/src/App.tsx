@@ -8,6 +8,7 @@ import OnboardingPage from './pages/onboarding/OnboardingPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import StockPage from './pages/stock/StockPage';
 import GlossaryPage from './pages/glossary/GlossaryPage';
+import NewsPage from './pages/news/NewsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -52,6 +53,9 @@ export default function App() {
           } />
           <Route path="/glossary" element={
             <SurveyGuard><GlossaryPage /></SurveyGuard>
+          } />
+          <Route path="/news" element={
+            <SurveyGuard><NewsPage /></SurveyGuard>
           } />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

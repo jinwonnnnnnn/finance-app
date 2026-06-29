@@ -14,9 +14,9 @@ function toYahooSymbol(symbol: string, market: string): string {
 @Injectable()
 export class StockService {
   private readonly logger = new Logger(StockService.name);
-  // yahoo-finance2 v3: 싱글톤 대신 인스턴스 패턴으로 변경됨
+  // yahoo-finance2 v3: .default가 클래스로 바뀌어 직접 new로 인스턴스화 필요
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  private readonly yf = new (require('yahoo-finance2').YahooFinance)();
+  private readonly yf = new (require('yahoo-finance2').default)();
 
   constructor(private config: ConfigService) {}
 
