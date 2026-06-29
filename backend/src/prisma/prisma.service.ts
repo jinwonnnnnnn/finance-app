@@ -1,26 +1,31 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-
-function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-  return new PrismaClient({ adapter } as any);
-}
 
 @Injectable()
-export class PrismaService extends (PrismaClient as any) implements OnModuleInit, OnModuleDestroy {
+export class PrismaService implements OnModuleInit, OnModuleDestroy {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _client: any;
+
+  get user() { return this._client.user; }
+  get glossary() { return this._client.glossary; }
+  get watchlist() { return this._client.watchlist; }
+  get alert() { return this._client.alert; }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  $transaction(...args: any[]) { return this._client.$transaction(...args); }
+
   constructor() {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-    super({ adapter });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaClient } = require('@prisma/client');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaPg } = require('@prisma/adapter-pg');
+    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    this._client = new PrismaClient({ adapter });
   }
 
   async onModuleInit() {
-    await (this as any).$connect();
+    await this._client.$connect();
   }
 
   async onModuleDestroy() {
-    await (this as any).$disconnect();
+    await this._client.$disconnect();
   }
 }
-
-export { createPrismaClient };
