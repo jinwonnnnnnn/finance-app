@@ -8,9 +8,8 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid,
 } from 'recharts';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import Navbar from '../../components/layout/Navbar';
 
@@ -22,7 +21,15 @@ const PERIODS = [
   { label: '1년', resolution: 'W', days: 365 },
 ];
 
-const DEFAULT_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
+const US_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
+const KR_SYMBOLS = ['005930', '000660', '035420', '035720', '051910'];
+const KR_NAMES: Record<string, string> = {
+  '005930': '삼성전자',
+  '000660': 'SK하이닉스',
+  '035420': 'NAVER',
+  '035720': '카카오',
+  '051910': 'LG화학',
+};
 
 interface Props {
   market: 'US' | 'KR';
@@ -32,7 +39,11 @@ export default function StockPage({ market }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [period, setPeriod] = useState(PERIODS[2]);
   const [search, setSearch] = useState('');
-  const symbol = searchParams.get('symbol') ?? 'AAPL';
+  const [watchlistMsg, setWatchlistMsg] = useState('');
+
+  const defaultSymbol = market === 'US' ? 'AAPL' : '005930';
+  const symbol = searchParams.get('symbol') ?? defaultSymbol;
+  const quickSymbols = market === 'US' ? US_SYMBOLS : KR_SYMBOLS;
 
   const now = Math.floor(Date.now() / 1000);
   const from = now - period.days * 86400;
@@ -62,99 +73,159 @@ export default function StockPage({ market }: Props) {
     price: c.close,
   }));
 
-  const isUp = (quote?.changePercent ?? 0) >= 0;
-  const color = isUp ? '#22c55e' : '#ef4444';
+  const changePercent = quote?.changePercent ?? 0;
+  const isUp = changePercent >= 0;
+  const upColor = '#10b981';
+  const downColor = '#ef4444';
+  const color = isUp ? upColor : downColor;
+  const currency = market === 'US' ? '$' : '₩';
 
   const addToWatchlist = async () => {
-    await api.post('/watchlist', { symbol, name: symbol, market });
+    try {
+      const name = market === 'KR' ? (KR_NAMES[symbol] ?? symbol) : symbol;
+      await api.post('/watchlist', { symbol, name, market });
+      setWatchlistMsg('관심종목에 추가되었습니다');
+      setTimeout(() => setWatchlistMsg(''), 2500);
+    } catch {
+      setWatchlistMsg('이미 추가된 종목입니다');
+      setTimeout(() => setWatchlistMsg(''), 2500);
+    }
   };
 
+  const displaySymbol = market === 'KR' ? (KR_NAMES[symbol] ?? symbol) : symbol;
+
   return (
-    <div className="min-h-screen bg-[#0f1117]">
+    <div className="min-h-screen bg-[#08090d]">
       <Navbar />
-      <main className="max-w-6xl mx-auto px-4 pt-20 pb-24 md:pb-8">
-        <div className="flex gap-3 mb-6">
-          {/* 검색창 */}
+
+      <main className="max-w-5xl mx-auto px-4 pt-16 pb-24 md:pb-10">
+        {/* 검색 + 관심종목 */}
+        <div className="flex gap-2 mt-4 mb-4">
           <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+              <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </div>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={market === 'US' ? 'AAPL, TSLA 검색...' : '삼성전자 검색...'}
-              className="w-full bg-[#1a1d27] border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+              placeholder={market === 'US' ? 'AAPL, TSLA, NVDA...' : '삼성전자, 카카오...'}
+              className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl pl-9 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
             />
-            {searchResults.length > 0 && search.length > 1 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1d27] border border-slate-700 rounded-xl overflow-hidden z-10 shadow-2xl">
-                {searchResults.map((r: any) => (
-                  <button
-                    key={r.symbol}
-                    onClick={() => {
-                      setSearchParams({ symbol: r.symbol });
-                      setSearch('');
-                    }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-800 transition text-white text-sm"
-                  >
-                    <span className="font-bold">{r.symbol}</span>
-                    <span className="text-slate-400 ml-2">{r.description}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+            <AnimatePresence>
+              {searchResults.length > 0 && search.length > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="absolute top-full left-0 right-0 mt-1.5 bg-[#111318] border border-white/[0.08] rounded-2xl overflow-hidden z-20 shadow-2xl"
+                >
+                  {searchResults.slice(0, 6).map((r: any) => (
+                    <button
+                      key={r.symbol}
+                      onClick={() => {
+                        setSearchParams({ symbol: r.symbol });
+                        setSearch('');
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-white/[0.04] transition text-sm flex items-center gap-3"
+                    >
+                      <span className="font-bold text-white">{r.symbol}</span>
+                      <span className="text-slate-500 truncate">{r.description}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <button
             onClick={addToWatchlist}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-semibold transition whitespace-nowrap"
+            className="bg-[#111318] hover:bg-white/[0.05] border border-white/[0.07] text-white px-4 py-3 rounded-2xl text-sm font-medium transition flex items-center gap-1.5 whitespace-nowrap"
           >
-            ⭐ 관심종목
+            <svg className="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+            </svg>
+            관심종목
           </button>
         </div>
+
+        {/* 토스트 */}
+        <AnimatePresence>
+          {watchlistMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mb-3 bg-[#111318] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-slate-300 text-center"
+            >
+              {watchlistMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 시세 헤더 */}
         <motion.div
           key={symbol}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-[#1a1d27] border border-slate-800 rounded-2xl p-6 mb-6"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="bg-[#111318] border border-white/[0.06] rounded-2xl p-5 mb-3"
         >
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-3xl font-bold text-white">{symbol}</h2>
-              <p className="text-slate-400 text-sm mt-1">{market === 'US' ? '미국 주식' : '국내 주식'}</p>
+              <div className="flex items-center gap-2 mb-0.5">
+                <h2 className="text-2xl font-bold text-white tabular-nums">{displaySymbol}</h2>
+                <span className="text-xs text-slate-500 bg-white/[0.04] px-2 py-0.5 rounded-full">
+                  {market === 'US' ? 'NASDAQ' : 'KOSPI'}
+                </span>
+              </div>
+              <p className="text-slate-500 text-xs">{market === 'US' ? '미국 주식' : '국내 주식'}</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-white">
-                {quote ? `$${quote.current.toFixed(2)}` : '—'}
+              <p className="text-2xl font-bold text-white tabular-nums">
+                {quote
+                  ? `${currency}${market === 'KR' ? Math.floor(quote.current).toLocaleString() : quote.current.toFixed(2)}`
+                  : <span className="text-slate-600">—</span>}
               </p>
-              <p className={`text-sm font-semibold mt-1 ${isUp ? 'text-green-400' : 'text-red-400'}`}>
-                {isUp ? '▲' : '▼'} {Math.abs(quote?.change ?? 0).toFixed(2)} ({Math.abs(quote?.changePercent ?? 0).toFixed(2)}%)
-              </p>
+              <div className={`flex items-center justify-end gap-1 mt-1 text-sm font-semibold tabular-nums ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  {isUp
+                    ? <path fillRule="evenodd" d="M12 20.25a.75.75 0 01-.75-.75V6.31L5.47 12.53a.75.75 0 01-1.06-1.06l7.5-7.5a.75.75 0 011.06 0l7.5 7.5a.75.75 0 11-1.06 1.06l-5.78-5.97v13.19a.75.75 0 01-.75.75z" clipRule="evenodd" />
+                    : <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v13.19l5.78-5.97a.75.75 0 111.06 1.06l-7.5 7.5a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 111.06-1.06l5.78 5.97V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
+                  }
+                </svg>
+                {Math.abs(quote?.change ?? 0).toFixed(2)} ({Math.abs(changePercent).toFixed(2)}%)
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-800">
+          <div className="grid grid-cols-4 gap-3 pt-4 border-t border-white/[0.05]">
             {[
-              { label: '시가', value: quote?.open?.toFixed(2) },
-              { label: '고가', value: quote?.high?.toFixed(2) },
-              { label: '저가', value: quote?.low?.toFixed(2) },
-              { label: '전일종가', value: quote?.prevClose?.toFixed(2) },
+              { label: '시가', value: quote?.open },
+              { label: '고가', value: quote?.high },
+              { label: '저가', value: quote?.low },
+              { label: '전일', value: quote?.prevClose },
             ].map((item) => (
               <div key={item.label}>
-                <p className="text-slate-500 text-xs">{item.label}</p>
-                <p className="text-white font-semibold">${item.value ?? '—'}</p>
+                <p className="text-slate-600 text-[10px] uppercase tracking-wider mb-1">{item.label}</p>
+                <p className="text-white text-sm font-semibold tabular-nums">
+                  {item.value ? `${currency}${item.value.toFixed(2)}` : '—'}
+                </p>
               </div>
             ))}
           </div>
         </motion.div>
 
         {/* 기간 선택 */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-1.5 mb-2">
           {PERIODS.map((p) => (
             <button
               key={p.label}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
                 period.label === p.label
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-[#1a1d27] text-slate-400 hover:text-white border border-slate-800'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'text-slate-500 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
             >
               {p.label}
@@ -163,35 +234,50 @@ export default function StockPage({ market }: Props) {
         </div>
 
         {/* 차트 */}
-        <div className="bg-[#1a1d27] border border-slate-800 rounded-2xl p-4 mb-6">
+        <div className="bg-[#111318] border border-white/[0.06] rounded-2xl p-4 mb-4">
           {isLoading ? (
-            <div className="h-64 flex items-center justify-center text-slate-500">
-              차트 로딩 중...
+            <div className="h-60 flex flex-col items-center justify-center gap-3 text-slate-600">
+              <div className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+              <span className="text-sm">차트 로딩 중</span>
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="h-60 flex items-center justify-center text-slate-600 text-sm">
+              차트 데이터가 없습니다
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={chartData} margin={{ left: -10, right: 10, top: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0} />
+                    <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+                    <stop offset="100%" stopColor={color} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  domain={['auto', 'auto']}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: '#475569', fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
-                  width={65}
-                  tickFormatter={(v) => `$${v.toFixed(0)}`}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={['auto', 'auto']}
+                  tick={{ fill: '#475569', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={60}
+                  tickFormatter={(v) => `${currency}${Number(v).toFixed(0)}`}
                 />
                 <Tooltip
-                  contentStyle={{ background: '#1a1d27', border: '1px solid #334155', borderRadius: 8 }}
-                  labelStyle={{ color: '#94a3b8' }}
-                  itemStyle={{ color: '#fff' }}
-                  formatter={(v: any) => [`$${Number(v).toFixed(2)}`, '가격']}
+                  contentStyle={{
+                    background: '#0f1117',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 12,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                  }}
+                  labelStyle={{ color: '#64748b', fontSize: 11 }}
+                  itemStyle={{ color: '#fff', fontWeight: 600 }}
+                  formatter={(v: any) => [`${currency}${Number(v).toFixed(2)}`, '가격']}
                 />
                 <Area
                   type="monotone"
@@ -200,6 +286,7 @@ export default function StockPage({ market }: Props) {
                   strokeWidth={2}
                   fill="url(#colorGrad)"
                   dot={false}
+                  activeDot={{ r: 4, fill: color, strokeWidth: 0 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -207,20 +294,23 @@ export default function StockPage({ market }: Props) {
         </div>
 
         {/* 빠른 종목 선택 */}
-        <div className="flex gap-2 flex-wrap">
-          {DEFAULT_SYMBOLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSearchParams({ symbol: s })}
-              className={`px-3 py-1.5 rounded-lg text-sm transition border ${
-                symbol === s
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
-                  : 'bg-[#1a1d27] border-slate-800 text-slate-400 hover:text-white'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div>
+          <p className="text-slate-600 text-[11px] uppercase tracking-wider mb-2">빠른 선택</p>
+          <div className="flex gap-2 flex-wrap">
+            {quickSymbols.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSearchParams({ symbol: s })}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+                  symbol === s
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                    : 'bg-[#111318] border border-white/[0.06] text-slate-500 hover:text-white hover:border-white/[0.15]'
+                }`}
+              >
+                {market === 'KR' ? (KR_NAMES[s] ?? s) : s}
+              </button>
+            ))}
+          </div>
         </div>
       </main>
     </div>

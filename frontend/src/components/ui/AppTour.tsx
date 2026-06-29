@@ -76,14 +76,14 @@ export default function AppTour() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-x-4 bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-sm z-50"
           >
-            <div className="bg-[#1a1d27] border border-slate-700 rounded-3xl p-6 shadow-2xl">
+            <div className="bg-[#0f1117] border border-white/[0.08] rounded-3xl p-6 shadow-2xl">
               {/* 진행 점 */}
               <div className="flex gap-1.5 mb-5">
                 {TOUR_STEPS.map((_, i) => (
                   <div
                     key={i}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === step ? 'bg-indigo-500 w-6' : 'bg-slate-700 w-1.5'
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      i === step ? 'bg-indigo-500 w-6' : 'bg-white/10 w-1.5'
                     }`}
                   />
                 ))}
@@ -96,15 +96,15 @@ export default function AppTour() {
               <div className="flex gap-2">
                 <button
                   onClick={finish}
-                  className="flex-1 py-3 rounded-xl text-slate-500 hover:text-slate-300 text-sm transition border border-slate-800"
+                  className="flex-1 py-3 rounded-2xl text-slate-500 hover:text-slate-300 text-sm transition hover:bg-white/[0.04]"
                 >
                   건너뛰기
                 </button>
                 <button
                   onClick={next}
-                  className="flex-2 flex-grow py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition"
+                  className="flex-2 flex-grow py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition shadow-lg shadow-indigo-600/20"
                 >
-                  {step === TOUR_STEPS.length - 1 ? '시작하기 🚀' : '다음 →'}
+                  {step === TOUR_STEPS.length - 1 ? '시작하기' : '다음 →'}
                 </button>
               </div>
             </div>

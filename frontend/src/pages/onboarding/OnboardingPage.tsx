@@ -87,15 +87,23 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f1117] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-lg">
+    <div className="min-h-screen bg-[#08090d] flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        {/* 로고 */}
+        <div className="flex items-center gap-2 mb-10 justify-center">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+            <span className="text-white font-bold text-xs">핀</span>
+          </div>
+          <span className="text-white font-semibold text-base">핀테크입문</span>
+        </div>
+
         {/* 진행 바 */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-1.5 mb-8">
           {steps.map((_, i) => (
             <div
               key={i}
-              className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                i <= current ? 'bg-indigo-500' : 'bg-slate-700'
+              className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                i <= current ? 'bg-indigo-500' : 'bg-white/[0.07]'
               }`}
             />
           ))}
@@ -105,20 +113,21 @@ export default function OnboardingPage() {
           <motion.div
             key={current}
             custom={direction}
-            initial={{ opacity: 0, x: direction * 40 }}
+            initial={{ opacity: 0, x: direction * 30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -direction * 40 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, x: -direction * 30 }}
+            transition={{ duration: 0.22 }}
           >
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">{step.emoji}</div>
-              <h2 className="text-2xl font-bold text-white">{step.question}</h2>
+            <div className="mb-7">
+              <p className="text-slate-600 text-xs mb-2">{current + 1} / {steps.length}</p>
+              <div className="text-4xl mb-3">{step.emoji}</div>
+              <h2 className="text-xl font-bold text-white">{step.question}</h2>
               {step.multiple && (
-                <p className="text-slate-400 text-sm mt-2">복수 선택 가능</p>
+                <p className="text-slate-500 text-xs mt-1.5">복수 선택 가능</p>
               )}
             </div>
 
-            <div className="grid gap-3">
+            <div className="space-y-2">
               {step.options.map((opt) => {
                 const value = typeof opt === 'string' ? opt : opt.value;
                 const label = typeof opt === 'string' ? opt : opt.label;
@@ -127,13 +136,20 @@ export default function OnboardingPage() {
                   <button
                     key={value}
                     onClick={() => selectOption(value)}
-                    className={`w-full p-4 rounded-xl text-left font-medium transition-all border-2 ${
+                    className={`w-full p-4 rounded-2xl text-left font-medium transition-all text-sm ${
                       selected
-                        ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                        : 'bg-[#1a1d27] border-slate-700 text-slate-300 hover:border-slate-500'
+                        ? 'bg-indigo-600/15 border-2 border-indigo-500/70 text-white'
+                        : 'bg-[#111318] border-2 border-white/[0.06] text-slate-300 hover:border-white/[0.15]'
                     }`}
                   >
-                    {label}
+                    <div className="flex items-center justify-between">
+                      <span>{label}</span>
+                      {selected && (
+                        <svg className="w-4 h-4 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -143,9 +159,9 @@ export default function OnboardingPage() {
               <button
                 onClick={isLast ? handleSubmit : () => { setDirection(1); setCurrent((c) => c + 1); }}
                 disabled={submitting || ((answers[step.id] as string[])?.length ?? 0) === 0}
-                className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl py-4 font-bold text-lg transition"
+                className="w-full mt-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-2xl py-3.5 font-bold text-sm transition-all shadow-lg shadow-indigo-600/20"
               >
-                {submitting ? '저장 중...' : isLast ? '시작하기 🚀' : '다음'}
+                {submitting ? '저장 중...' : isLast ? '투자 시작하기' : '다음 →'}
               </button>
             )}
           </motion.div>
@@ -154,9 +170,12 @@ export default function OnboardingPage() {
         {current > 0 && (
           <button
             onClick={() => { setDirection(-1); setCurrent((c) => c - 1); }}
-            className="mt-4 text-slate-500 hover:text-slate-300 text-sm w-full text-center transition"
+            className="mt-4 text-slate-600 hover:text-slate-400 text-sm w-full text-center transition flex items-center justify-center gap-1"
           >
-            ← 이전
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            이전
           </button>
         )}
       </div>

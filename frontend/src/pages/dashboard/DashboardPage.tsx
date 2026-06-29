@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { api } from '../../lib/api';
 import Navbar from '../../components/layout/Navbar';
@@ -10,11 +11,33 @@ import GlossaryModal from '../../components/ui/GlossaryModal';
 import AppTour from '../../components/ui/AppTour';
 
 const POPULAR_SYMBOLS = [
-  { symbol: 'AAPL', name: 'Apple', market: 'US' },
-  { symbol: 'TSLA', name: 'Tesla', market: 'US' },
-  { symbol: 'NVDA', name: 'NVIDIA', market: 'US' },
-  { symbol: 'MSFT', name: 'Microsoft', market: 'US' },
+  { symbol: 'AAPL', name: 'Apple', market: 'US' as const },
+  { symbol: 'TSLA', name: 'Tesla', market: 'US' as const },
+  { symbol: 'NVDA', name: 'NVIDIA', market: 'US' as const },
+  { symbol: 'MSFT', name: 'Microsoft', market: 'US' as const },
+  { symbol: 'GOOGL', name: 'Alphabet', market: 'US' as const },
+  { symbol: 'AMZN', name: 'Amazon', market: 'US' as const },
 ];
+
+const INTEREST_LABELS: Record<string, string> = {
+  STOCK_KR: '국내주식',
+  STOCK_US: '해외주식',
+  COIN: '코인',
+  PENSION: '퇴직연금',
+};
+
+function SectionHeader({ title, to, cta }: { title: string; to?: string; cta?: string }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-[15px] font-semibold text-white">{title}</h2>
+      {to && cta && (
+        <Link to={to} className="text-indigo-400 text-xs hover:text-indigo-300 transition font-medium">
+          {cta} →
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -31,90 +54,133 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0f1117]">
+    <div className="min-h-screen bg-[#08090d]">
       <Navbar />
       <AppTour />
 
-      <main className="max-w-6xl mx-auto px-4 pt-20 pb-24 md:pb-8">
-        {/* 환영 */}
+      <main className="max-w-6xl mx-auto px-4 pt-16 pb-24 md:pb-10">
+        {/* 환영 히어로 */}
         <motion.section
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          transition={{ duration: 0.35 }}
+          className="relative overflow-hidden rounded-2xl bg-[#111318] border border-white/[0.06] p-6 mb-5 mt-4"
         >
-          <h1 className="text-2xl font-bold text-white mb-1">
-            안녕하세요, {user?.nickname}님 👋
-          </h1>
-          <p className="text-slate-400 text-sm">
-            관심 분야:{' '}
-            {user?.interests?.map((i) => (
-              <span key={i} className="inline-block bg-indigo-600/20 text-indigo-300 rounded px-2 py-0.5 text-xs mr-1">
-                {i === 'STOCK_KR' ? '국내주식' : i === 'STOCK_US' ? '해외주식' : i === 'COIN' ? '코인' : '퇴직연금'}
-              </span>
-            ))}
-          </p>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 rounded-full blur-[60px] pointer-events-none translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-1/2 w-48 h-48 bg-violet-600/8 rounded-full blur-[50px] pointer-events-none" />
+          <div className="relative">
+            <p className="text-slate-500 text-xs mb-1">안녕하세요</p>
+            <h1 className="text-xl font-bold text-white mb-3">{user?.nickname}님, 좋은 하루예요</h1>
+            <div className="flex flex-wrap gap-1.5">
+              {user?.interests?.map((i) => (
+                <span
+                  key={i}
+                  className="bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                >
+                  {INTEREST_LABELS[i] ?? i}
+                </span>
+              ))}
+            </div>
+          </div>
         </motion.section>
 
         {/* AI 투자 제안 */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">🤖 지금 이런 투자는 어떠세요?</h2>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="mb-5"
+        >
+          <SectionHeader title="지금 이런 투자는 어때요?" />
           <InvestmentAdviceCard />
-        </section>
+        </motion.section>
 
         {/* 관심종목 */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">⭐ 관심종목</h2>
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+          className="mb-5"
+        >
+          <SectionHeader title="관심종목" to="/stock/us" cta="전체보기" />
           {watchlist.length === 0 ? (
-            <div className="bg-[#1a1d27] rounded-2xl p-6 text-center text-slate-500 border border-slate-800 border-dashed">
-              <p className="text-2xl mb-2">🔍</p>
-              <p className="text-sm">아직 관심종목이 없어요.</p>
-              <p className="text-xs text-slate-600 mt-1">주식 탭에서 종목 검색 후 ⭐ 버튼을 눌러보세요</p>
-            </div>
+            <Link
+              to="/stock/us"
+              className="flex items-center gap-4 bg-[#111318] border border-dashed border-white/[0.08] hover:border-white/[0.15] rounded-2xl p-5 transition group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center">
+                <svg className="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-slate-300 text-sm font-medium group-hover:text-white transition">관심종목 추가하기</p>
+                <p className="text-slate-600 text-xs mt-0.5">주식 화면에서 ⭐ 버튼을 눌러보세요</p>
+              </div>
+            </Link>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {watchlist.map((item: any) => (
-                <StockCard key={item.symbol} symbol={item.symbol} name={item.name} />
+                <StockCard key={item.symbol} symbol={item.symbol} name={item.name} market={item.market ?? 'US'} />
               ))}
             </div>
           )}
-        </section>
+        </motion.section>
 
         {/* 인기 종목 */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-white mb-4">🔥 인기 종목</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.15 }}
+          className="mb-5"
+        >
+          <SectionHeader title="인기 종목" to="/stock/us" cta="더보기" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             {POPULAR_SYMBOLS.map((s) => (
-              <StockCard key={s.symbol} symbol={s.symbol} name={s.name} />
+              <StockCard key={s.symbol} symbol={s.symbol} name={s.name} market={s.market} />
             ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* 오늘의 금융 용어 */}
-        <section>
-          <h2 className="text-lg font-semibold text-white mb-1">📚 오늘의 금융 용어</h2>
-          <p className="text-slate-600 text-xs mb-4">눌러보면 자세한 설명과 AI 질문을 할 수 있어요</p>
-          <div className="grid md:grid-cols-3 gap-3">
-            {glossary.map((item: any) => (
-              <motion.button
-                key={item.term}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedTerm(item)}
-                className="text-left bg-[#1a1d27] border border-slate-800 hover:border-indigo-700 rounded-2xl p-5 transition cursor-pointer w-full"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-white">{item.term}</span>
-                  <span className="text-xs bg-indigo-600/20 text-indigo-300 rounded px-2 py-0.5">{item.category}</span>
-                </div>
-                <p className="text-slate-400 text-sm">{item.simple}</p>
-                <p className="text-indigo-400 text-xs mt-3">탭해서 자세히 보기 →</p>
-              </motion.button>
-            ))}
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.2 }}
+        >
+          <SectionHeader title="오늘의 금융 용어" to="/glossary" cta="용어사전" />
+          <div className="grid md:grid-cols-3 gap-2">
+            {glossary.length === 0
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-[#111318] border border-white/[0.06] rounded-2xl p-5 animate-pulse">
+                    <div className="h-4 bg-white/5 rounded w-1/2 mb-3" />
+                    <div className="h-3 bg-white/5 rounded w-full mb-2" />
+                    <div className="h-3 bg-white/5 rounded w-3/4" />
+                  </div>
+                ))
+              : glossary.map((item: any) => (
+                  <motion.button
+                    key={item.term}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedTerm(item)}
+                    className="text-left bg-[#111318] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-indigo-950/20 rounded-2xl p-5 transition-all w-full group"
+                  >
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="font-bold text-white text-[15px]">{item.term}</span>
+                      <span className="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/20 rounded-full px-2 py-0.5 font-medium">
+                        {item.category}
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-sm leading-relaxed">{item.simple}</p>
+                    <p className="text-indigo-400/70 text-xs mt-3 group-hover:text-indigo-400 transition">
+                      탭해서 AI 설명 보기 →
+                    </p>
+                  </motion.button>
+                ))}
           </div>
-        </section>
+        </motion.section>
       </main>
 
-      {/* 용어 모달 */}
       <GlossaryModal item={selectedTerm} onClose={() => setSelectedTerm(null)} />
     </div>
   );
