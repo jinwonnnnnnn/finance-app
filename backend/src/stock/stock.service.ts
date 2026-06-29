@@ -2,11 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
-// yahoo-finance2: API 키 없이 Yahoo Finance 데이터를 가져오는 라이브러리
-// 미국(AAPL, TSLA)과 한국(005930.KS) 주식 모두 지원
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const yahooFinance = require('yahoo-finance2').default;
-
 /**
  * 한국 종목코드(6자리 숫자)를 Yahoo Finance 심볼로 변환
  * 예: '005930' → '005930.KS' (삼성전자)
@@ -19,6 +14,9 @@ function toYahooSymbol(symbol: string, market: string): string {
 @Injectable()
 export class StockService {
   private readonly logger = new Logger(StockService.name);
+  // yahoo-finance2 v3: 싱글톤 대신 인스턴스 패턴으로 변경됨
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  private readonly yf = new (require('yahoo-finance2').YahooFinance)();
 
   constructor(private config: ConfigService) {}
 
@@ -29,7 +27,7 @@ export class StockService {
    */
   async searchSymbol(query: string, market = 'US') {
     try {
-      const results = await yahooFinance.search(query, {}, { validateResult: false });
+      const results = await this.yf.search(query, {}, { validateResult: false });
       // 시장별 거래소 필터링 (KSC/KOE = 한국거래소/코스닥)
       const quotes = (results.quotes ?? []).filter((q: any) =>
         market === 'KR'
@@ -55,7 +53,7 @@ export class StockService {
   async getQuote(symbol: string, market = 'US') {
     try {
       const yahooSymbol = toYahooSymbol(symbol, market);
-      const data = await yahooFinance.quote(yahooSymbol, {}, { validateResult: false });
+      const data = await this.yf.quote(yahooSymbol, {}, { validateResult: false });
       return {
         symbol,
         current: data.regularMarketPrice ?? 0,
@@ -86,7 +84,7 @@ export class StockService {
         '5': '5m', '60': '60m', 'D': '1d', 'W': '1wk', 'M': '1mo',
       };
       const interval = intervalMap[resolution] ?? '1d';
-      const data = await yahooFinance.chart(yahooSymbol, {
+      const data = await this.yf.chart(yahooSymbol, {
         period1: new Date(from * 1000),
         period2: new Date(to * 1000),
         interval,
