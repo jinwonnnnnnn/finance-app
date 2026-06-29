@@ -1,9 +1,17 @@
-FROM node:20-alpine
-RUN npm install -g pnpm
+FROM node:20-slim
+
 WORKDIR /app
+
+RUN npm install -g pnpm
+
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
 COPY . .
-RUN pnpm run build
+RUN pnpm build
+
 EXPOSE 4000
 CMD ["node", "dist/main"]
