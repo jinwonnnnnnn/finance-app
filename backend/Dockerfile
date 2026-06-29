@@ -12,6 +12,7 @@ RUN npx prisma generate
 
 COPY . .
 RUN pnpm build
+RUN ls -la /app/dist/
 
 EXPOSE 4000
-CMD ["node", "dist/main"]
+CMD ["node", "/app/dist/main"]
