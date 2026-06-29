@@ -50,7 +50,7 @@ export default function StockPage({ market }: Props) {
 
   const { data: quote } = useQuery({
     queryKey: ['quote', symbol],
-    queryFn: () => api.get(`/stock/${symbol}/quote`).then((r) => r.data),
+    queryFn: () => api.get(`/stock/${symbol}/quote`, { params: { market } }).then((r) => r.data),
     refetchInterval: 30000,
   });
 
@@ -58,7 +58,7 @@ export default function StockPage({ market }: Props) {
     queryKey: ['candles', symbol, period.label],
     queryFn: () =>
       api.get(`/stock/${symbol}/candles`, {
-        params: { resolution: period.resolution, from, to: now },
+        params: { resolution: period.resolution, from, to: now, market },
       }).then((r) => r.data),
   });
 
