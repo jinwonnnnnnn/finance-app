@@ -13,14 +13,19 @@ export class InvestmentAdvisorService {
   }
 
   async getMarketNews(): Promise<string> {
-    const token = this.config.get('FINNHUB_TOKEN');
-    const { data } = await axios.get('https://finnhub.io/api/v1/news', {
-      params: { category: 'general', token },
-    });
-    const top5 = (data as any[]).slice(0, 5);
-    return top5
-      .map((n: any) => `- [${n.source}] ${n.headline}`)
-      .join('\n');
+    try {
+      const token = this.config.get('FINNHUB_TOKEN');
+      const { data } = await axios.get('https://finnhub.io/api/v1/news', {
+        params: { category: 'general', token },
+        timeout: 5000,
+      });
+      const items = Array.isArray(data) ? data.slice(0, 5) : [];
+      if (items.length === 0) return '현재 뉴스 데이터를 가져오지 못했습니다.';
+      return items.map((n: any) => `- [${n.source}] ${n.headline}`).join('\n');
+    } catch (e) {
+      this.logger.warn('뉴스 가져오기 실패, 기본값 사용');
+      return '글로벌 시장은 금리와 AI 기술주 흐름에 영향을 받고 있습니다.';
+    }
   }
 
   async getAdvice(interests: string[], surveyResult: any): Promise<{

@@ -23,7 +23,8 @@ export class AiController {
 
   @Get('investment-advice')
   getInvestmentAdvice(@Req() req: any) {
-    const { interests, surveyResult } = req.user;
-    return this.advisorService.getAdvice(interests ?? [], surveyResult);
+    const interests: string[] = req.user?.interests ?? [];
+    const surveyResult = req.user?.surveyResult ?? {};
+    return this.advisorService.getAdvice(interests, surveyResult);
   }
 }
