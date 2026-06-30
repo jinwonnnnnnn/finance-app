@@ -33,7 +33,9 @@ function extractFilePaths(text) {
 function readFileSafe(path) {
   try {
     if (!existsSync(path)) return null;
-    return readFileSync(path, 'utf-8');
+    const content = readFileSync(path, 'utf-8');
+    // 토큰 한도 초과 방지: 2500자로 제한
+    return content.length > 2500 ? content.substring(0, 2500) + '\n// ... (truncated — write full file in response)' : content;
   } catch { return null; }
 }
 
@@ -44,7 +46,7 @@ async function callGroq(messages) {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages,
-      max_tokens: 8192,
+      max_tokens: 6000,
       temperature: 0.1,
     }),
   });
@@ -70,26 +72,12 @@ async function main() {
       .map(([p, c]) => `### ${p}\n\`\`\`\n${c}\n\`\`\``)
       .join('\n\n');
 
-    const systemPrompt = `You are an expert full-stack developer fixing GitHub issues in a Korean fintech learning app.
-Stack: React 18 + TypeScript + Tailwind CSS (frontend/), NestJS + Prisma + PostgreSQL (backend/).
+    const systemPrompt = `Expert full-stack dev fixing GitHub issues. Stack: React 18+TS+Tailwind (frontend/), NestJS+Prisma+PostgreSQL (backend/).
 
-Return ONLY valid JSON with NO markdown fences, NO extra explanation:
-{
-  "summary": "한국어로 변경 내용 한 줄 요약",
-  "files": [
-    {
-      "path": "relative/path/to/file",
-      "content": "COMPLETE new file content — the entire file, not a snippet"
-    }
-  ]
-}
+Return ONLY valid JSON, no markdown fences:
+{"summary":"한국어 요약","files":[{"path":"file/path","content":"COMPLETE new file content"}]}
 
-CRITICAL RULES:
-- "content" must be the ENTIRE file content after your fix, not a partial snippet
-- Only include files that actually need changes
-- Preserve all imports, exports, and existing code structure
-- Do not add markdown code fences inside content values
-- Make minimal focused changes to fix only what the issue describes`;
+Rules: content = entire file after fix. Preserve imports/exports. Minimal changes only.`;
 
     const userPrompt = `## Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
