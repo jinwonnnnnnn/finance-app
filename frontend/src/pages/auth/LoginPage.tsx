@@ -30,7 +30,9 @@ export default function LoginPage() {
   };
 
   const handleOAuth = (provider: 'google' | 'kakao') => {
-    window.location.href = `/api/auth/${provider}`;
+    // OAuth 리다이렉트는 Vercel 프록시를 거치면 302 체인이 깨지므로 Railway 직접 호출
+    const backendUrl = 'https://precious-gentleness-production.up.railway.app';
+    window.location.href = `${backendUrl}/api/auth/${provider}`;
   };
 
   return (
