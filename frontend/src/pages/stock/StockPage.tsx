@@ -63,8 +63,8 @@ export default function StockPage({ market }: Props) {
   });
 
   const { data: searchResults = [] } = useQuery({
-    queryKey: ['search', search],
-    queryFn: () => api.get('/stock/search', { params: { q: search } }).then((r) => r.data),
+    queryKey: ['search', search, market],
+    queryFn: () => api.get('/stock/search', { params: { q: search, market } }).then((r) => r.data),
     enabled: search.length > 1,
   });
 
