@@ -39,6 +39,7 @@ export default function StockPage({ market }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [period, setPeriod] = useState(PERIODS[2]);
   const [search, setSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [watchlistMsg, setWatchlistMsg] = useState('');
 
   const defaultSymbol = market === 'US' ? 'AAPL' : '005930';
@@ -62,11 +63,15 @@ export default function StockPage({ market }: Props) {
       }).then((r) => r.data),
   });
 
-  const { data: searchResults = [] } = useQuery({
-    queryKey: ['search', search, market],
-    queryFn: () => api.get('/stock/search', { params: { q: search, market } }).then((r) => r.data),
-    enabled: search.length > 1,
+  const { data: searchResults = [], isFetching: isSearching } = useQuery({
+    queryKey: ['search', searchQuery, market],
+    queryFn: () => api.get('/stock/search', { params: { q: searchQuery, market } }).then((r) => r.data),
+    enabled: searchQuery.length > 1,
   });
+
+  const handleSearch = () => {
+    if (search.trim().length > 1) setSearchQuery(search.trim());
+  };
 
   const chartData = candles.map((c: any) => ({
     time: new Date(c.time * 1000).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
@@ -101,20 +106,30 @@ export default function StockPage({ market }: Props) {
       <main className="max-w-5xl mx-auto px-4 pt-16 pb-24 md:pb-10">
         {/* 검색 + 관심종목 */}
         <div className="flex gap-2 mt-4 mb-4">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-              </svg>
+          <div className="relative flex-1 flex gap-2">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder={market === 'US' ? 'AAPL, TSLA, Apple...' : '삼성전자, 카카오...'}
+                className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl pl-9 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
+              />
             </div>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={market === 'US' ? 'AAPL, TSLA, NVDA...' : '삼성전자, 카카오...'}
-              className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl pl-9 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
-            />
+            <button
+              onClick={handleSearch}
+              disabled={search.trim().length < 2}
+              className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-3 rounded-2xl text-sm font-medium transition whitespace-nowrap"
+            >
+              {isSearching ? '검색 중...' : '검색'}
+            </button>
             <AnimatePresence>
-              {searchResults.length > 0 && search.length > 1 && (
+              {searchResults.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -127,6 +142,7 @@ export default function StockPage({ market }: Props) {
                       onClick={() => {
                         setSearchParams({ symbol: r.symbol });
                         setSearch('');
+                        setSearchQuery('');
                       }}
                       className="w-full text-left px-4 py-3 hover:bg-white/[0.04] transition text-sm flex items-center gap-3"
                     >

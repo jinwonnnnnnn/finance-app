@@ -2,57 +2,91 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
-/**
- * 한국 종목코드(6자리 숫자)를 Yahoo Finance 심볼로 변환
- * 예: '005930' → '005930.KS' (삼성전자)
- */
-function toYahooSymbol(symbol: string, market: string): string {
-  if (market === 'KR' || /^\d{6}$/.test(symbol)) return `${symbol}.KS`;
+function toYahooSymbol(symbol: string): string {
+  if (/^\d{6}$/.test(symbol)) return `${symbol}.KS`;
   return symbol;
 }
 
 @Injectable()
 export class StockService {
   private readonly logger = new Logger(StockService.name);
-  // yahoo-finance2 v3: .default가 클래스로 바뀌어 직접 new로 인스턴스화 필요
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   private readonly yf = new (require('yahoo-finance2').default)();
 
   constructor(private config: ConfigService) {}
 
-  /**
-   * 종목 검색
-   * - US: 'Apple' → [{ symbol: 'AAPL', description: 'Apple Inc.' }]
-   * - KR: '삼성' → [{ symbol: '005930', description: '삼성전자' }]
-   */
+  private get token() {
+    return this.config.get<string>('FINNHUB_TOKEN');
+  }
+
   async searchSymbol(query: string, market = 'US') {
+    if (market === 'KR') return this.searchYahooKR(query);
+    return this.searchFinnhub(query);
+  }
+
+  private async searchFinnhub(query: string) {
     try {
-      const results = await this.yf.search(query, {}, { validateResult: false });
-      // 시장별 거래소 필터링 (KSC/KOE = 한국거래소/코스닥)
-      const quotes = (results.quotes ?? []).filter((q: any) =>
-        market === 'KR'
-          ? q.exchange === 'KSC' || q.exchange === 'KOE'
-          : q.quoteType === 'EQUITY' && !q.symbol?.endsWith('.KS'),
-      );
-      return quotes.slice(0, 10).map((q: any) => ({
-        // KR: Yahoo 심볼에서 .KS 제거해서 6자리 코드만 반환
-        symbol: market === 'KR' ? q.symbol?.replace('.KS', '') : q.symbol,
-        description: q.shortname ?? q.longname ?? q.symbol,
-        type: q.quoteType,
-      }));
+      const { data } = await axios.get('https://finnhub.io/api/v1/search', {
+        params: { q: query, token: this.token },
+        timeout: 8000,
+      });
+      return (data.result ?? [])
+        .filter((r: any) => r.type === 'Common Stock' && !r.symbol.includes('.'))
+        .slice(0, 10)
+        .map((r: any) => ({ symbol: r.symbol, description: r.description, type: r.type }));
     } catch (e) {
-      this.logger.error('searchSymbol error', e);
+      this.logger.error('searchFinnhub error', e);
       return [];
     }
   }
 
-  /**
-   * 현재 시세 조회 (30초마다 프론트에서 자동 갱신)
-   * regularMarketPrice = 현재가, regularMarketChangePercent = 등락률(%)
-   */
-  async getQuote(symbol: string, market = 'US') {
+  private async searchYahooKR(query: string) {
     try {
-      const yahooSymbol = toYahooSymbol(symbol, market);
+      const results = await this.yf.search(query, {}, { validateResult: false });
+      const quotes = (results.quotes ?? []).filter(
+        (q: any) => q.exchange === 'KSC' || q.exchange === 'KOE',
+      );
+      return quotes.slice(0, 10).map((q: any) => ({
+        symbol: q.symbol?.replace('.KS', ''),
+        description: q.shortname ?? q.longname ?? q.symbol,
+        type: q.quoteType,
+      }));
+    } catch (e) {
+      this.logger.error('searchYahooKR error', e);
+      return [];
+    }
+  }
+
+  async getQuote(symbol: string, market = 'US') {
+    if (market === 'KR') return this.getQuoteYahoo(symbol);
+    return this.getQuoteFinnhub(symbol);
+  }
+
+  private async getQuoteFinnhub(symbol: string) {
+    try {
+      const { data } = await axios.get('https://finnhub.io/api/v1/quote', {
+        params: { symbol, token: this.token },
+        timeout: 8000,
+      });
+      return {
+        symbol,
+        current: data.c ?? 0,
+        high: data.h ?? 0,
+        low: data.l ?? 0,
+        open: data.o ?? 0,
+        prevClose: data.pc ?? 0,
+        change: (data.c ?? 0) - (data.pc ?? 0),
+        changePercent: data.dp ?? 0,
+      };
+    } catch (e) {
+      this.logger.error(`getQuoteFinnhub error: ${symbol}`, e);
+      return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
+    }
+  }
+
+  private async getQuoteYahoo(symbol: string) {
+    try {
+      const yahooSymbol = toYahooSymbol(symbol);
       const data = await this.yf.quote(yahooSymbol, {}, { validateResult: false });
       return {
         symbol,
@@ -61,25 +95,44 @@ export class StockService {
         low: data.regularMarketDayLow ?? 0,
         open: data.regularMarketOpen ?? 0,
         prevClose: data.regularMarketPreviousClose ?? 0,
-        change: data.regularMarketChange ?? 0,          // 전일 대비 변동액
-        changePercent: data.regularMarketChangePercent ?? 0, // 전일 대비 변동률(%)
+        change: data.regularMarketChange ?? 0,
+        changePercent: data.regularMarketChangePercent ?? 0,
       };
     } catch (e) {
-      this.logger.error(`getQuote error: ${symbol}`, e);
-      // 오류 시 0으로 채워 반환 (프론트에서 '—' 표시)
+      this.logger.error(`getQuoteYahoo error: ${symbol}`, e);
       return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
     }
   }
 
-  /**
-   * 차트 캔들 데이터 조회
-   * resolution: '5'=5분봉, '60'=1시간봉, 'D'=일봉, 'W'=주봉, 'M'=월봉
-   * from/to: Unix timestamp (초 단위)
-   */
   async getCandles(symbol: string, resolution: string, from: number, to: number, market = 'US') {
+    if (market === 'KR') return this.getCandlesYahoo(symbol, resolution, from, to);
+    return this.getCandlesFinnhub(symbol, resolution, from, to);
+  }
+
+  private async getCandlesFinnhub(symbol: string, resolution: string, from: number, to: number) {
     try {
-      const yahooSymbol = toYahooSymbol(symbol, market);
-      // Finnhub resolution 코드 → Yahoo Finance interval 변환
+      const { data } = await axios.get('https://finnhub.io/api/v1/stock/candle', {
+        params: { symbol, resolution, from, to, token: this.token },
+        timeout: 10000,
+      });
+      if (data.s !== 'ok' || !data.t) return [];
+      return data.t.map((t: number, i: number) => ({
+        time: t,
+        open: data.o[i],
+        high: data.h[i],
+        low: data.l[i],
+        close: data.c[i],
+        volume: data.v[i],
+      }));
+    } catch (e) {
+      this.logger.error(`getCandlesFinnhub error: ${symbol}`, e);
+      return [];
+    }
+  }
+
+  private async getCandlesYahoo(symbol: string, resolution: string, from: number, to: number) {
+    try {
+      const yahooSymbol = toYahooSymbol(symbol);
       const intervalMap: Record<string, '1d' | '1wk' | '1mo' | '60m' | '5m'> = {
         '5': '5m', '60': '60m', 'D': '1d', 'W': '1wk', 'M': '1mo',
       };
@@ -91,30 +144,21 @@ export class StockService {
       }, { validateResult: false });
 
       return (data.quotes ?? [])
-        .filter((q: any) => q.close != null) // 데이터 없는 날(공휴일 등) 제외
+        .filter((q: any) => q.close != null)
         .map((q: any) => ({
-          time: Math.floor(new Date(q.date).getTime() / 1000), // Unix timestamp로 변환
-          open: q.open,
-          high: q.high,
-          low: q.low,
-          close: q.close,
-          volume: q.volume,
+          time: Math.floor(new Date(q.date).getTime() / 1000),
+          open: q.open, high: q.high, low: q.low, close: q.close, volume: q.volume,
         }));
     } catch (e) {
-      this.logger.error(`getCandles error: ${symbol}`, e);
+      this.logger.error(`getCandlesYahoo error: ${symbol}`, e);
       return [];
     }
   }
 
-  /**
-   * Finnhub에서 글로벌 경제 뉴스 가져오기
-   * AI 투자 제안 생성 시 시장 컨텍스트로 활용됨
-   */
   async getFinnhubNews(_symbols: string[]) {
     try {
-      const token = this.config.get('FINNHUB_TOKEN');
       const { data } = await axios.get('https://finnhub.io/api/v1/news', {
-        params: { category: 'general', token },
+        params: { category: 'general', token: this.token },
       });
       return (data ?? []).slice(0, 5);
     } catch {
