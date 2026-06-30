@@ -11,7 +11,11 @@ import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // Railway(production)에서는 .env 파일 무시 → Railway Variables만 사용
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+    }),
     PrismaModule,
     AuthModule,
     UsersModule,
