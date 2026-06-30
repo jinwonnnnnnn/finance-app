@@ -43,11 +43,13 @@ export class StockService {
   private async searchYahooKR(query: string) {
     try {
       const results = await this.yf.search(query, {}, { validateResult: false });
+      this.logger.debug(`searchYahooKR raw count: ${(results.quotes ?? []).length}`);
       const quotes = (results.quotes ?? []).filter(
-        (q: any) => q.exchange === 'KSC' || q.exchange === 'KOE',
+        (q: any) => ['KSC', 'KOE', 'KSE'].includes(q.exchange) ||
+          (q.symbol && /^\d{6}\.(KS|KQ)$/.test(q.symbol)),
       );
       return quotes.slice(0, 10).map((q: any) => ({
-        symbol: q.symbol?.replace('.KS', ''),
+        symbol: q.symbol?.replace(/\.(KS|KQ)$/, ''),
         description: q.shortname ?? q.longname ?? q.symbol,
         type: q.quoteType,
       }));

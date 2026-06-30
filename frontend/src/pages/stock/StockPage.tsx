@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -41,6 +41,7 @@ export default function StockPage({ market }: Props) {
   const [search, setSearch] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [watchlistMsg, setWatchlistMsg] = useState('');
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const defaultSymbol = market === 'US' ? 'AAPL' : '005930';
   const symbol = searchParams.get('symbol') ?? defaultSymbol;
@@ -68,6 +69,20 @@ export default function StockPage({ market }: Props) {
     queryFn: () => api.get('/stock/search', { params: { q: searchQuery, market } }).then((r) => r.data),
     enabled: searchQuery.length > 1,
   });
+
+  useEffect(() => {
+    if (!searchResults.length) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setSearchQuery(''); setSearch(''); } };
+    const handleClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchQuery('');
+    };
+    document.addEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', handleClick);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [searchResults.length]);
 
   const handleSearch = () => {
     if (search.trim().length > 1) setSearchQuery(search.trim());
@@ -106,7 +121,7 @@ export default function StockPage({ market }: Props) {
       <main className="max-w-5xl mx-auto px-4 pt-16 pb-24 md:pb-10">
         {/* 검색 + 관심종목 */}
         <div className="flex gap-2 mt-4 mb-4">
-          <div className="relative flex-1 flex gap-2">
+          <div ref={searchRef} className="relative flex-1 flex gap-2">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                 <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../stores/authStore';
@@ -72,6 +72,21 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowMenu(false); };
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', handleClick);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, [showMenu]);
 
   const handleLogout = () => {
     logout();
@@ -114,7 +129,7 @@ export default function Navbar() {
           </nav>
 
           {/* 프로필 */}
-          <div className="relative">
+          <div ref={menuRef} className="relative">
             <button
               onClick={() => setShowMenu((v) => !v)}
               className="flex items-center gap-2 hover:bg-white/[0.05] rounded-xl px-2.5 py-1.5 transition"
