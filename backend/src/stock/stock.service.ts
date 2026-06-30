@@ -90,14 +90,17 @@ export class StockService {
     try {
       const yahooSymbol = toYahooSymbol(symbol);
       const data = await this.yf.quote(yahooSymbol, {}, { validateResult: false });
+      const prevClose = data.regularMarketPreviousClose ?? 0;
+      const current = data.regularMarketPrice ?? data.regularMarketPreviousClose ?? 0;
+      this.logger.debug(`getQuoteYahoo ${symbol}: price=${current}, prev=${prevClose}`);
       return {
         symbol,
-        current: data.regularMarketPrice ?? 0,
-        high: data.regularMarketDayHigh ?? 0,
-        low: data.regularMarketDayLow ?? 0,
-        open: data.regularMarketOpen ?? 0,
-        prevClose: data.regularMarketPreviousClose ?? 0,
-        change: data.regularMarketChange ?? 0,
+        current,
+        high: data.regularMarketDayHigh ?? current,
+        low: data.regularMarketDayLow ?? current,
+        open: data.regularMarketOpen ?? current,
+        prevClose,
+        change: data.regularMarketChange ?? (current - prevClose),
         changePercent: data.regularMarketChangePercent ?? 0,
       };
     } catch (e) {
