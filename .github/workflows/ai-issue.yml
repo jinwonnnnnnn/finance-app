@@ -9,9 +9,9 @@ on:
 jobs:
   ai-implement:
     if: |
-      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'grok')) ||
       (github.event_name == 'issue_comment' &&
-       (contains(github.event.comment.body, '@ai') || contains(github.event.comment.body, '@claude')) &&
+       contains(github.event.comment.body, '@grok') &&
        !github.event.issue.pull_request)
 
     runs-on: ubuntu-latest
