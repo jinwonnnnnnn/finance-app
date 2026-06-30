@@ -12,7 +12,7 @@ export default function StockCard({ symbol, name, market = 'US' }: Props) {
   const navigate = useNavigate();
   const { data } = useQuery({
     queryKey: ['quote', symbol],
-    queryFn: () => api.get(`/stock/${symbol}/quote`).then((r) => r.data),
+    queryFn: () => api.get(`/stock/${symbol}/quote`, { params: { market } }).then((r) => r.data),
     refetchInterval: 30000,
   });
 
@@ -38,7 +38,11 @@ export default function StockCard({ symbol, name, market = 'US' }: Props) {
         </div>
         <div className="text-right shrink-0">
           <p className="text-white font-bold text-base tabular-nums">
-            {data ? `$${data.current.toFixed(2)}` : <span className="text-slate-600">—</span>}
+            {data
+              ? market === 'KR'
+                ? `₩${Math.floor(data.current).toLocaleString()}`
+                : `$${data.current.toFixed(2)}`
+              : <span className="text-slate-600">—</span>}
           </p>
           <p className={`text-xs tabular-nums ${colorClass}`}>
             {data ? `${isUp ? '+' : ''}${data.change?.toFixed(2)}` : ''}

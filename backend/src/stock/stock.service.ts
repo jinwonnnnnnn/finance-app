@@ -58,7 +58,7 @@ export class StockService {
   }
 
   async getQuote(symbol: string, market = 'US') {
-    if (market === 'KR') return this.getQuoteYahoo(symbol);
+    if (market === 'KR' || /^\d{6}$/.test(symbol)) return this.getQuoteYahoo(symbol);
     return this.getQuoteFinnhub(symbol);
   }
 
@@ -105,7 +105,7 @@ export class StockService {
   }
 
   async getCandles(symbol: string, resolution: string, from: number, to: number, market = 'US') {
-    if (market === 'KR') return this.getCandlesYahoo(symbol, resolution, from, to);
+    if (market === 'KR' || /^\d{6}$/.test(symbol)) return this.getCandlesYahoo(symbol, resolution, from, to);
     return this.getCandlesFinnhub(symbol, resolution, from, to);
   }
 
