@@ -3,8 +3,7 @@
 > 초보자를 위한 AI 기반 재테크 입문 플랫폼.
 > 실시간 주식 시세 · 차트 · AI 투자 분석 · 금융 용어 사전을 한 곳에서.
 
-**Live:** https://finance-app-jw.vercel.app  
-**Backend API:** https://precious-gentleness-production.up.railway.app
+**Live:** https://finance-app-jw.vercel.app
 
 ---
 
