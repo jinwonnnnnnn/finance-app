@@ -1,5 +1,5 @@
 {
-  "installCommand": "corepack enable && cd frontend && pnpm install --frozen-lockfile",
+  "installCommand": "npm install -g pnpm@10.28.0 && cd frontend && pnpm install",
   "buildCommand": "cd frontend && pnpm build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
