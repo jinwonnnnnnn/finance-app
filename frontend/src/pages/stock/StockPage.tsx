@@ -142,7 +142,7 @@ export default function StockPage({ market }: Props) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder={market === 'US' ? 'AAPL, TSLA, Apple...' : '삼성전자, 카카오...'}
+                placeholder={market === 'US' ? 'AAPL, TSLA, Apple...' : 'Samsung, Kakao, SK, Naver...'}
                 className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl pl-9 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
               />
             </div>
