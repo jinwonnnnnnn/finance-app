@@ -64,7 +64,8 @@ export class StockService {
         : quotes;
       return filtered.slice(0, 10).map((q) => ({
         symbol: q.symbol?.replace(/\.(KS|KQ)$/, '') ?? q.symbol,
-        description: q.shortname ?? q.longname ?? q.symbol,
+        // KR: displayName(한글) → longname → shortname 순으로 시도
+        description: q.displayName ?? q.longname ?? q.shortname ?? q.symbol,
         type: q.quoteType,
       }));
     } catch (e: any) {

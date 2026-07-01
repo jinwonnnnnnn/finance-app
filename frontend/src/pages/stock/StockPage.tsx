@@ -43,6 +43,13 @@ export default function StockPage({ market }: Props) {
   const [watchlistMsg, setWatchlistMsg] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
+  // 입력 300ms 뒤 자동 검색
+  useEffect(() => {
+    if (search.trim().length < 2) { setSearchQuery(''); return; }
+    const t = setTimeout(() => setSearchQuery(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const defaultSymbol = market === 'US' ? 'AAPL' : '005930';
   const symbol = searchParams.get('symbol') ?? defaultSymbol;
   const quickSymbols = market === 'US' ? US_SYMBOLS : KR_SYMBOLS;
@@ -161,8 +168,21 @@ export default function StockPage({ market }: Props) {
                       }}
                       className="w-full text-left px-4 py-3 hover:bg-white/[0.04] transition text-sm flex items-center gap-3"
                     >
-                      <span className="font-bold text-white">{r.symbol}</span>
-                      <span className="text-slate-500 truncate">{r.description}</span>
+                      {market === 'KR' ? (
+                        <>
+                          <span className="font-bold text-white truncate flex-1">
+                            {r.description || KR_NAMES[r.symbol] || r.symbol}
+                          </span>
+                          <span className="text-[11px] text-slate-500 bg-white/[0.06] px-2 py-0.5 rounded-md shrink-0 font-mono">
+                            {r.symbol}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-bold text-white shrink-0">{r.symbol}</span>
+                          <span className="text-slate-500 truncate">{r.description}</span>
+                        </>
+                      )}
                     </button>
                   ))}
                 </motion.div>
