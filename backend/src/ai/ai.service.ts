@@ -4,13 +4,20 @@ import Groq from 'groq-sdk';
 
 @Injectable()
 export class AiService {
-  private client: Groq;
+  private _client: Groq | null = null;
   private model: string;
 
   constructor(private config: ConfigService) {
-    // Groq 무료 API: 빠른 추론, llama-3.3-70b-versatile 모델 사용
-    this.client = new Groq({ apiKey: this.config.get('GROQ_API_KEY') });
     this.model = this.config.get('GROQ_CHAT_MODEL') ?? 'llama-3.3-70b-versatile';
+  }
+
+  private get client(): Groq {
+    if (!this._client) {
+      const apiKey = this.config.get<string>('GROQ_API_KEY');
+      if (!apiKey) throw new Error('GROQ_API_KEY is not set');
+      this._client = new Groq({ apiKey });
+    }
+    return this._client;
   }
 
   async explain(term: string, context?: string) {
