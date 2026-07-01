@@ -139,7 +139,7 @@ function WriteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (p
 }
 
 // ── Comment Section ────────────────────────────────────
-function CommentSection({ postId, userId }: { postId: string; userId: string }) {
+function CommentSection({ postId }: { postId: string }) {
   const [input, setInput] = useState('');
   const qc = useQueryClient();
 
@@ -202,7 +202,7 @@ function CommentSection({ postId, userId }: { postId: string; userId: string }) 
 }
 
 // ── Post Card ──────────────────────────────────────────
-function PostCard({ post, userId }: { post: Post; userId: string }) {
+function PostCard({ post }: { post: Post }) {
   const [expanded, setExpanded] = useState(false);
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
@@ -310,7 +310,7 @@ function PostCard({ post, userId }: { post: Post; userId: string }) {
             transition={{ duration: 0.2 }}
             style={{ overflow: 'hidden' }}
           >
-            <CommentSection postId={post.id} userId={userId} />
+            <CommentSection postId={post.id} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -440,7 +440,7 @@ export default function CommunityPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
               >
-                <PostCard post={post} userId={user?.id ?? ''} />
+                <PostCard post={post} />
               </motion.div>
             ))}
           </motion.div>
