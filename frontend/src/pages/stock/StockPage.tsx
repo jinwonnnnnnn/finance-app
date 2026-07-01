@@ -24,11 +24,11 @@ const PERIODS = [
 const US_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 const KR_SYMBOLS = ['005930', '000660', '035420', '035720', '051910'];
 const KR_NAMES: Record<string, string> = {
-  '005930': '삼성전자',
-  '000660': 'SK하이닉스',
+  '005930': 'Samsung Electronics',
+  '000660': 'SK Hynix',
   '035420': 'NAVER',
-  '035720': '카카오',
-  '051910': 'LG화학',
+  '035720': 'Kakao',
+  '051910': 'LG Chem',
 };
 
 interface Props {
@@ -111,7 +111,9 @@ export default function StockPage({ market }: Props) {
 
   const addToWatchlist = async () => {
     try {
-      const name = market === 'KR' ? (KR_NAMES[symbol] ?? symbol) : symbol;
+      const name = market === 'KR'
+        ? (searchParams.get('name') ?? KR_NAMES[symbol] ?? symbol)
+        : symbol;
       await api.post('/watchlist', { symbol, name, market });
       setWatchlistMsg('관심종목에 추가되었습니다');
       setTimeout(() => setWatchlistMsg(''), 2500);
@@ -121,7 +123,9 @@ export default function StockPage({ market }: Props) {
     }
   };
 
-  const displaySymbol = market === 'KR' ? (KR_NAMES[symbol] ?? symbol) : symbol;
+  const displaySymbol = market === 'KR'
+    ? (searchParams.get('name') ?? KR_NAMES[symbol] ?? symbol)
+    : symbol;
 
   return (
     <div className="min-h-screen bg-[#08090d]">
@@ -151,7 +155,9 @@ export default function StockPage({ market }: Props) {
                   } else if (e.key === 'Enter') {
                     if (activeIdx >= 0 && searchResults[activeIdx]) {
                       const r = searchResults[activeIdx];
-                      setSearchParams({ symbol: r.symbol });
+                      const params: Record<string, string> = { symbol: r.symbol };
+                      if (market === 'KR' && r.description) params.name = r.description;
+                      setSearchParams(params);
                       setSearch(''); setSearchQuery(''); setActiveIdx(-1);
                     } else {
                       handleSearch();
@@ -188,7 +194,9 @@ export default function StockPage({ market }: Props) {
                       onMouseEnter={() => setActiveIdx(idx)}
                       onMouseLeave={() => setActiveIdx(-1)}
                       onClick={() => {
-                        setSearchParams({ symbol: r.symbol });
+                        const params: Record<string, string> = { symbol: r.symbol };
+                        if (market === 'KR' && r.description) params.name = r.description;
+                        setSearchParams(params);
                         setSearch(''); setSearchQuery(''); setActiveIdx(-1);
                       }}
                       className={`w-full text-left px-4 py-3 transition text-sm flex items-center gap-3 ${
@@ -387,7 +395,7 @@ export default function StockPage({ market }: Props) {
             {quickSymbols.map((s) => (
               <button
                 key={s}
-                onClick={() => setSearchParams({ symbol: s })}
+                onClick={() => setSearchParams({ symbol: s, ...(market === 'KR' && KR_NAMES[s] ? { name: KR_NAMES[s] } : {}) })}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium transition ${
                   symbol === s
                     ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
