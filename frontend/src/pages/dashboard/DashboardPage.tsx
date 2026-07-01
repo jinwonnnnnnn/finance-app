@@ -96,7 +96,6 @@ export default function DashboardPage() {
   const popularSymbols = getPopularSymbols(interests);
   const popularTitle = getPopularTitle(interests);
   const popularLink = getPopularLink(interests);
-  const coinOnly = interests.length > 0 && !interests.includes('STOCK_KR') && !interests.includes('STOCK_US');
 
   return (
     <div className="min-h-screen bg-[#08090d]">
@@ -173,40 +172,19 @@ export default function DashboardPage() {
           )}
         </motion.section>
 
-        {/* 인기 종목 — 코인 전용 유저는 코인 CTA 표시 */}
+        {/* 인기 종목 */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.15 }}
           className="mb-5"
         >
-          {coinOnly ? (
-            <>
-              <SectionHeader title="암호화폐" to="/coin" cta="더보기" />
-              <Link
-                to="/coin"
-                className="flex items-center gap-4 bg-[#111318] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-indigo-950/10 rounded-2xl p-5 transition group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-300 text-xl">₿</div>
-                <div>
-                  <p className="text-slate-200 text-sm font-medium group-hover:text-white transition">실시간 코인 시세 보기</p>
-                  <p className="text-slate-500 text-xs mt-0.5">비트코인, 이더리움 등 상위 30개 코인</p>
-                </div>
-                <svg className="w-4 h-4 text-slate-600 ml-auto group-hover:text-indigo-400 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-              </Link>
-            </>
-          ) : (
-            <>
-              <SectionHeader title={popularTitle} to={popularLink} cta="더보기" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                {popularSymbols.map((s) => (
-                  <StockCard key={s.symbol} symbol={s.symbol} name={s.name} market={s.market} />
-                ))}
-              </div>
-            </>
-          )}
+          <SectionHeader title={popularTitle} to={popularLink} cta="더보기" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {popularSymbols.map((s) => (
+              <StockCard key={s.symbol} symbol={s.symbol} name={s.name} market={s.market} />
+            ))}
+          </div>
         </motion.section>
 
         {/* 오늘의 금융 용어 */}

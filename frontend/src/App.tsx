@@ -12,6 +12,7 @@ import NewsPage from './pages/news/NewsPage';
 import FloatingChatBot from './components/ui/FloatingChatBot';
 import CoinPage from './pages/coin/CoinPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import CommunityPage from './pages/community/CommunityPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -59,6 +60,9 @@ export default function App() {
           } />
           <Route path="/glossary" element={
             <SurveyGuard><GlossaryPage /></SurveyGuard>
+          } />
+          <Route path="/community" element={
+            <SurveyGuard><CommunityPage /></SurveyGuard>
           } />
           <Route path="/news" element={
             <SurveyGuard><NewsPage /></SurveyGuard>

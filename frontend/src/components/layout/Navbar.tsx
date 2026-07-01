@@ -8,9 +8,22 @@ const tabs = [
   { path: '/stock/us', label: '해외주식', icon: ChartIcon },
   { path: '/stock/kr', label: '국내주식', icon: KRIcon },
   { path: '/coin', label: '코인', icon: CoinIcon },
+  { path: '/community', label: '커뮤니티', icon: CommunityIcon },
   { path: '/news', label: '뉴스', icon: NewsIcon },
   { path: '/glossary', label: '용어사전', icon: BookIcon },
 ];
+
+function CommunityIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 1.8}>
+      {active ? (
+        <path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+      ) : (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+      )}
+    </svg>
+  );
+}
 
 function CoinIcon({ active }: { active: boolean }) {
   return (
@@ -211,14 +224,14 @@ export default function Navbar() {
 
       {/* 모바일 하단 탭바 */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#08090d]/90 backdrop-blur-xl border-t border-white/[0.05] z-40 pb-safe">
-        <div className="flex items-stretch">
+        <div className="flex items-stretch overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const active = isActive(tab.path);
             return (
               <Link
                 key={tab.path}
                 to={tab.path}
-                className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-[10px] font-medium transition-colors ${
+                className={`flex-shrink-0 flex flex-col items-center justify-center py-2.5 px-3 gap-1 text-[10px] font-medium transition-colors ${
                   active ? 'text-indigo-400' : 'text-slate-600'
                 }`}
               >

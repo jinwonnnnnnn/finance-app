@@ -19,10 +19,50 @@ model User {
   interests    String[]
   watchlist    Watchlist[]
   alerts       Alert[]
+  posts        Post[]      @relation("PostAuthor")
+  postLikes    PostLike[]  @relation("PostLikeUser")
+  comments     Comment[]   @relation("CommentAuthor")
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
   @@map("users")
+}
+
+model Post {
+  id        String     @id @default(uuid())
+  content   String
+  tag       String     @default("FREE")
+  authorId  String
+  author    User       @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  likes     PostLike[]
+  comments  Comment[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("posts")
+}
+
+model PostLike {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("PostLikeUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("comments")
 }
 
 model Glossary {

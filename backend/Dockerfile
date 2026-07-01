@@ -15,4 +15,4 @@ RUN pnpm build
 RUN ls -la /app/dist/
 
 EXPOSE 4000
-CMD ["node", "/app/dist/src/main"]
+CMD ["sh", "-c", "npx prisma db push && node /app/dist/src/main"]
