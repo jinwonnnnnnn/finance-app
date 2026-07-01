@@ -1,0 +1,9 @@
+{
+  "installCommand": "cd frontend && pnpm install",
+  "buildCommand": "cd frontend && pnpm build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://precious-gentleness-production.up.railway.app/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
