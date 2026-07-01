@@ -169,37 +169,9 @@ export class StockService {
 
   // ── 차트(캔들) ─────────────────────────────────────────────────────────────
 
-  async getCandles(symbol: string, resolution: string, from: number, to: number, market = 'US') {
-    if (market === 'KR' || /^\d{6}$/.test(symbol)) {
-      return this.getCandlesYahoo(symbol, resolution, from, to);
-    }
-    return this.getCandlesFinnhub(symbol, resolution, from, to);
-  }
-
-  private async getCandlesFinnhub(symbol: string, resolution: string, from: number, to: number) {
-    try {
-      const { data } = await axios.get('https://finnhub.io/api/v1/stock/candle', {
-        params: { symbol, resolution, from, to, token: this.token },
-        timeout: 10000,
-      });
-      if (data.s !== 'ok' || !data.t?.length) {
-        this.logger.warn(`getCandlesFinnhub: ${symbol} status=${data.s}`);
-        return [];
-      }
-      const candles = data.t.map((t: number, i: number) => ({
-        time: t,
-        open:   data.o?.[i] ?? null,
-        high:   data.h?.[i] ?? null,
-        low:    data.l?.[i] ?? null,
-        close:  data.c?.[i] ?? null,
-        volume: data.v?.[i] ?? null,
-      }));
-      this.logger.log(`getCandlesFinnhub ${symbol} (${resolution}): ${candles.length} candles`);
-      return candles;
-    } catch (e: any) {
-      this.logger.error(`getCandlesFinnhub error: ${symbol}: ${errMsg(e)}`);
-      return [];
-    }
+  async getCandles(symbol: string, resolution: string, from: number, to: number, _market = 'US') {
+    // Finnhub 무료 플랜은 캔들 미지원 → US/KR 모두 Yahoo Finance 사용
+    return this.getCandlesYahoo(symbol, resolution, from, to);
   }
 
   private async getCandlesYahoo(symbol: string, resolution: string, from: number, to: number) {
