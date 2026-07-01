@@ -1,32 +1,25 @@
-# React + TypeScript + Vite
+# Frontend — React + Vite + TypeScript
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+재테크 학습 앱 프론트엔드. 루트 README를 참고하세요: [../README.md](../README.md)
 
-Currently, two official plugins are available:
+## 개발 서버
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+pnpm install
+pnpm dev        # http://localhost:5173
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## 빌드
+
+```bash
+pnpm build      # dist/ 출력
+pnpm preview    # 빌드 결과 로컬 미리보기
+```
+
+## Vercel 서버리스 함수
+
+`api/yf-proxy.ts` — Yahoo Finance 검색/차트 프록시.
+Railway 서버 IP가 Yahoo Finance `query2`에 차단되어 Vercel IP를 통해 우회합니다.
+
+- `?type=search&q={query}` → `query2.finance.yahoo.com/v1/finance/search`
+- `?symbol={symbol}&range={range}&interval={interval}` → `query1.finance.yahoo.com/v8/finance/chart/{symbol}`
