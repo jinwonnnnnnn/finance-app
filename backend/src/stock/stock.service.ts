@@ -7,64 +7,23 @@ const YF_HEADERS = {
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   Accept: 'application/json, text/plain, */*',
   'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
   Referer: 'https://finance.yahoo.com/',
-  Origin: 'https://finance.yahoo.com',
-};
-
-// Yahoo Finance cookie + crumb 세션 캐시 (55분 TTL)
-const yfSession = {
-  cookie: '',
-  crumb: '',
-  expires: 0,
-  refreshing: false,
-
-  async ensureValid(logger: Logger) {
-    if (this.crumb && Date.now() < this.expires) return;
-    if (this.refreshing) {
-      await new Promise((r) => setTimeout(r, 2000));
-      return;
-    }
-    this.refreshing = true;
-    try {
-      // Step 1: consent cookie
-      const r1 = await axios.get('https://fc.yahoo.com/', {
-        headers: YF_HEADERS,
-        timeout: 8000,
-        maxRedirects: 5,
-        validateStatus: () => true,
-      });
-      const setCookies = (r1.headers['set-cookie'] ?? []) as string[];
-      this.cookie = setCookies.map((c: string) => c.split(';')[0]).join('; ');
-
-      // Step 2: crumb
-      const r2 = await axios.get('https://query2.finance.yahoo.com/v1/test/getcrumb', {
-        headers: { ...YF_HEADERS, Cookie: this.cookie },
-        timeout: 8000,
-        validateStatus: () => true,
-      });
-      if (r2.status === 200 && typeof r2.data === 'string' && r2.data.length > 0) {
-        this.crumb = r2.data;
-        this.expires = Date.now() + 55 * 60 * 1000;
-        logger.log(`YF session refreshed, crumb=${this.crumb.slice(0, 8)}...`);
-      } else {
-        logger.warn(`YF crumb fetch failed: status=${r2.status}`);
-      }
-    } catch (e: any) {
-      logger.warn(`YF session refresh error: ${e?.message ?? e}`);
-    } finally {
-      this.refreshing = false;
-    }
-  },
-
-  headers(): Record<string, string> {
-    return this.cookie ? { ...YF_HEADERS, Cookie: this.cookie } : YF_HEADERS;
-  },
 };
 
 function toYahooSymbol(symbol: string): string {
   if (/^\d{6}$/.test(symbol)) return `${symbol}.KS`;
   return symbol;
+}
+
+// 날짜 범위(일수) → Yahoo Finance range 파라미터
+// range 파라미터는 period1/period2와 달리 crumb 불필요
+function daysToRange(days: number): { range: string; interval: string } {
+  if (days <= 2)   return { range: '1d',  interval: '5m'  };
+  if (days <= 7)   return { range: '5d',  interval: '30m' };
+  if (days <= 35)  return { range: '1mo', interval: '1d'  };
+  if (days <= 95)  return { range: '3mo', interval: '1d'  };
+  if (days <= 370) return { range: '1y',  interval: '1wk' };
+  return               { range: '5y',  interval: '1mo' };
 }
 
 function errMsg(e: any): string {
@@ -107,10 +66,9 @@ export class StockService {
 
   private async searchYahoo(query: string, krOnly = false) {
     try {
-      await yfSession.ensureValid(this.logger);
       const { data } = await axios.get('https://query2.finance.yahoo.com/v1/finance/search', {
-        params: { q: query, quotesCount: 15, newsCount: 0, enableFuzzyQuery: false, crumb: yfSession.crumb },
-        headers: yfSession.headers(),
+        params: { q: query, quotesCount: 15, newsCount: 0, enableFuzzyQuery: false },
+        headers: YF_HEADERS,
         timeout: 8000,
       });
       const quotes: any[] = data?.quotes ?? [];
@@ -164,25 +122,26 @@ export class StockService {
   private async getQuoteYahoo(symbol: string) {
     const yahooSymbol = toYahooSymbol(symbol);
     try {
-      await yfSession.ensureValid(this.logger);
+      // range=1d → crumb 불필요, 클라우드 IP 통과
       const { data } = await axios.get(
         `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
         {
-          params: { interval: '1d', range: '1d', crumb: yfSession.crumb },
-          headers: yfSession.headers(),
+          params: { interval: '1d', range: '1d' },
+          headers: YF_HEADERS,
           timeout: 10000,
         },
       );
-      const meta = data?.chart?.result?.[0]?.meta;
-      if (!meta) {
-        this.logger.warn(`getQuoteYahoo: no meta for ${yahooSymbol}`);
+      const result = data?.chart?.result?.[0];
+      if (!result) {
+        this.logger.warn(`getQuoteYahoo: no result for ${yahooSymbol} (${data?.chart?.error?.code ?? 'unknown'})`);
         return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
       }
+      const meta = result.meta;
       const prev = meta.chartPreviousClose ?? meta.previousClose ?? 0;
       const current = meta.regularMarketPrice ?? prev;
       const change = current - prev;
       const changePercent = prev ? (change / prev) * 100 : 0;
-      this.logger.log(`getQuoteYahoo ${yahooSymbol}: ₩${current}`);
+      this.logger.log(`getQuoteYahoo ${yahooSymbol}: ${current}`);
       return {
         symbol,
         current,
@@ -195,10 +154,6 @@ export class StockService {
       };
     } catch (e: any) {
       this.logger.error(`getQuoteYahoo error: ${yahooSymbol}: ${errMsg(e)}`);
-      // 세션 만료 가능성 → 강제 초기화
-      if ((e?.response?.status === 401 || e?.response?.status === 403)) {
-        yfSession.expires = 0;
-      }
       return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
     }
   }
@@ -211,42 +166,41 @@ export class StockService {
 
   private async getCandlesYahoo(symbol: string, resolution: string, from: number, to: number) {
     const yahooSymbol = toYahooSymbol(symbol);
-    const intervalMap: Record<string, string> = {
-      '1': '1m', '5': '5m', '15': '15m', '60': '60m',
-      'D': '1d', 'W': '1wk', 'M': '1mo',
-    };
-    const interval = intervalMap[resolution] ?? '1d';
+    const days = Math.max(1, Math.round((to - from) / 86400));
+    const { range, interval } = daysToRange(days);
+
     try {
-      await yfSession.ensureValid(this.logger);
       const { data } = await axios.get(
         `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
         {
-          params: { interval, period1: from, period2: to, crumb: yfSession.crumb },
-          headers: yfSession.headers(),
+          // range 파라미터 사용 → crumb 없이도 클라우드에서 동작
+          params: { interval, range },
+          headers: YF_HEADERS,
           timeout: 12000,
         },
       );
       const result = data?.chart?.result?.[0];
-      if (!result) return [];
+      if (!result) {
+        const errCode = data?.chart?.error?.code ?? 'no result';
+        this.logger.warn(`getCandlesYahoo: ${yahooSymbol} ${errCode}`);
+        return [];
+      }
       const timestamps: number[] = result.timestamp ?? [];
       const ohlcv = result.indicators?.quote?.[0] ?? {};
       const candles = timestamps
         .map((t, i) => ({
           time: t,
-          open: ohlcv.open?.[i] ?? null,
-          high: ohlcv.high?.[i] ?? null,
-          low: ohlcv.low?.[i] ?? null,
-          close: ohlcv.close?.[i] ?? null,
+          open:   ohlcv.open?.[i]   ?? null,
+          high:   ohlcv.high?.[i]   ?? null,
+          low:    ohlcv.low?.[i]    ?? null,
+          close:  ohlcv.close?.[i]  ?? null,
           volume: ohlcv.volume?.[i] ?? null,
         }))
         .filter((c) => c.close != null);
-      this.logger.log(`getCandlesYahoo ${yahooSymbol}: ${candles.length} candles`);
+      this.logger.log(`getCandlesYahoo ${yahooSymbol} (${range}/${interval}): ${candles.length} candles`);
       return candles;
     } catch (e: any) {
       this.logger.error(`getCandlesYahoo error: ${yahooSymbol}: ${errMsg(e)}`);
-      if (e?.response?.status === 401 || e?.response?.status === 403) {
-        yfSession.expires = 0;
-      }
       return [];
     }
   }
