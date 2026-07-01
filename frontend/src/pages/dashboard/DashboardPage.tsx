@@ -10,6 +10,34 @@ import InvestmentAdviceCard from '../../components/ui/InvestmentAdviceCard';
 import GlossaryModal from '../../components/ui/GlossaryModal';
 import AppTour from '../../components/ui/AppTour';
 
+interface DailyTip {
+  icon: string;
+  title: string;
+  body: string;
+  category: string;
+}
+
+const LEARN_SHORTCUTS = [
+  {
+    icon: '📖',
+    label: '용어사전',
+    desc: '금융 용어 한 번에 정리',
+    to: '/glossary',
+  },
+  {
+    icon: '📰',
+    label: '뉴스',
+    desc: '오늘의 금융 뉴스',
+    to: '/news',
+  },
+  {
+    icon: '🤖',
+    label: 'AI 상담',
+    desc: '핀이에게 질문하기',
+    to: null,
+  },
+];
+
 const POPULAR_SYMBOLS = [
   { symbol: 'AAPL', name: 'Apple', market: 'US' as const },
   { symbol: 'TSLA', name: 'Tesla', market: 'US' as const },
@@ -51,6 +79,12 @@ export default function DashboardPage() {
   const { data: glossary = [] } = useQuery({
     queryKey: ['glossary-today'],
     queryFn: () => api.get('/glossary').then((r) => r.data.slice(0, 3)),
+  });
+
+  const { data: dailyContent, isLoading: tipsLoading } = useQuery<{ tips: DailyTip[] }>({
+    queryKey: ['daily-content'],
+    queryFn: () => api.get('/ai/daily-content').then((r) => r.data),
+    staleTime: 60 * 60 * 1000,
   });
 
   return (
@@ -142,11 +176,96 @@ export default function DashboardPage() {
           </div>
         </motion.section>
 
-        {/* 오늘의 금융 용어 */}
+        {/* 오늘의 금융 팁 */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.2 }}
+          className="mb-5"
+        >
+          <SectionHeader title="오늘의 금융 팁" />
+          <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4">
+            {tipsLoading
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-44 bg-[#111318] border border-white/[0.06] rounded-2xl p-4 animate-pulse"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-white/5 mb-3" />
+                    <div className="h-3.5 bg-white/5 rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-white/5 rounded w-full mb-1.5" />
+                    <div className="h-3 bg-white/5 rounded w-2/3" />
+                  </div>
+                ))
+              : (dailyContent?.tips ?? []).map((tip, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.07 }}
+                    className="flex-shrink-0 w-44 bg-[#111318] border border-white/[0.06] hover:border-indigo-500/25 rounded-2xl p-4 transition-all"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center text-xl mb-3">
+                      {tip.icon}
+                    </div>
+                    <span className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5 font-medium">
+                      {tip.category}
+                    </span>
+                    <p className="text-white text-[13px] font-semibold mt-2 mb-1 leading-tight">
+                      {tip.title}
+                    </p>
+                    <p className="text-slate-400 text-xs leading-relaxed">{tip.body}</p>
+                  </motion.div>
+                ))}
+          </div>
+        </motion.section>
+
+        {/* 금융 학습 바로가기 */}
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.25 }}
+          className="mb-5"
+        >
+          <SectionHeader title="금융 학습 바로가기" />
+          <div className="grid grid-cols-3 gap-2">
+            {LEARN_SHORTCUTS.map((item) =>
+              item.to ? (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className="bg-[#111318] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-indigo-950/20 rounded-2xl p-4 transition-all group"
+                >
+                  <span className="text-2xl mb-2 block">{item.icon}</span>
+                  <p className="text-white text-[13px] font-semibold leading-tight">{item.label}</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5 leading-tight">{item.desc}</p>
+                  <p className="text-indigo-400/60 text-[11px] mt-2 group-hover:text-indigo-400 transition">
+                    바로가기 →
+                  </p>
+                </Link>
+              ) : (
+                <button
+                  key={item.label}
+                  onClick={() => window.dispatchEvent(new Event('open-chatbot'))}
+                  className="text-left bg-[#111318] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-indigo-950/20 rounded-2xl p-4 transition-all group"
+                >
+                  <span className="text-2xl mb-2 block">{item.icon}</span>
+                  <p className="text-white text-[13px] font-semibold leading-tight">{item.label}</p>
+                  <p className="text-slate-500 text-[11px] mt-0.5 leading-tight">{item.desc}</p>
+                  <p className="text-indigo-400/60 text-[11px] mt-2 group-hover:text-indigo-400 transition">
+                    열기 →
+                  </p>
+                </button>
+              )
+            )}
+          </div>
+        </motion.section>
+
+        {/* 오늘의 금융 용어 */}
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.3 }}
         >
           <SectionHeader title="오늘의 금융 용어" to="/glossary" cta="용어사전" />
           <div className="grid md:grid-cols-3 gap-2">

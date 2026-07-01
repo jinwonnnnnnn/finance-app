@@ -9,6 +9,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import StockPage from './pages/stock/StockPage';
 import GlossaryPage from './pages/glossary/GlossaryPage';
 import NewsPage from './pages/news/NewsPage';
+import FloatingChatBot from './components/ui/FloatingChatBot';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -60,6 +61,7 @@ export default function App() {
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        <FloatingChatBot />
       </BrowserRouter>
     </QueryClientProvider>
   );

@@ -27,4 +27,16 @@ export class AiController {
     const surveyResult = req.user?.surveyResult ?? {};
     return this.advisorService.getAdvice(interests, surveyResult);
   }
+
+  @Post('chat')
+  chat(@Body() body: { messages: { role: 'user' | 'assistant'; content: string }[] }) {
+    return this.aiService.chat(body.messages ?? []);
+  }
+
+  @Get('daily-content')
+  getDailyContent(@Req() req: any) {
+    const interests: string[] = req.user?.interests ?? [];
+    const surveyResult = req.user?.surveyResult ?? {};
+    return this.aiService.getDailyContent(interests, surveyResult);
+  }
 }
