@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
-import { useAuthStore } from '../../stores/authStore';
 import Navbar from '../../components/layout/Navbar';
 
 // ── Types ──────────────────────────────────────────────
@@ -341,7 +340,6 @@ function EmptyState({ onWrite }: { onWrite: () => void }) {
 
 // ── Main Page ──────────────────────────────────────────
 export default function CommunityPage() {
-  const { user } = useAuthStore();
   const [activeTag, setActiveTag] = useState('ALL');
   const [showWrite, setShowWrite] = useState(false);
   const qc = useQueryClient();
