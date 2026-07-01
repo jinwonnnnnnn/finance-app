@@ -10,6 +10,10 @@ const YF_HEADERS = {
   Referer: 'https://finance.yahoo.com/',
 };
 
+// Railway IP → Yahoo Finance 차트 차단 우회: Vercel 프록시 경유
+// VERCEL_PROXY 환경변수: https://finance-app-jw.vercel.app/api/yf-proxy
+const YF_PROXY = process.env.VERCEL_PROXY ?? '';
+
 function toYahooSymbol(symbol: string): string {
   if (/^\d{6}$/.test(symbol)) return `${symbol}.KS`;
   return symbol;
@@ -119,18 +123,25 @@ export class StockService {
     }
   }
 
+  private async fetchYFChart(yahooSymbol: string, interval: string, range: string) {
+    if (YF_PROXY) {
+      const { data } = await axios.get(YF_PROXY, {
+        params: { symbol: yahooSymbol, interval, range },
+        timeout: 12000,
+      });
+      return data;
+    }
+    const { data } = await axios.get(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
+      { params: { interval, range }, headers: YF_HEADERS, timeout: 12000 },
+    );
+    return data;
+  }
+
   private async getQuoteYahoo(symbol: string) {
     const yahooSymbol = toYahooSymbol(symbol);
     try {
-      // range=1d → crumb 불필요, 클라우드 IP 통과
-      const { data } = await axios.get(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
-        {
-          params: { interval: '1d', range: '1d' },
-          headers: YF_HEADERS,
-          timeout: 10000,
-        },
-      );
+      const data = await this.fetchYFChart(yahooSymbol, '1d', '1d');
       const result = data?.chart?.result?.[0];
       if (!result) {
         this.logger.warn(`getQuoteYahoo: no result for ${yahooSymbol} (${data?.chart?.error?.code ?? 'unknown'})`);
@@ -138,19 +149,16 @@ export class StockService {
       }
       const meta = result.meta;
       const prev = meta.chartPreviousClose ?? meta.previousClose ?? 0;
-      const current = meta.regularMarketPrice ?? prev;
-      const change = current - prev;
+      const cur = meta.regularMarketPrice ?? prev;
+      const change = cur - prev;
       const changePercent = prev ? (change / prev) * 100 : 0;
-      this.logger.log(`getQuoteYahoo ${yahooSymbol}: ${current}`);
+      this.logger.log(`getQuoteYahoo ${yahooSymbol}: ${cur}`);
       return {
-        symbol,
-        current,
-        high: meta.regularMarketDayHigh ?? current,
-        low: meta.regularMarketDayLow ?? current,
-        open: meta.regularMarketOpen ?? current,
-        prevClose: prev,
-        change,
-        changePercent,
+        symbol, current: cur,
+        high: meta.regularMarketDayHigh ?? cur,
+        low: meta.regularMarketDayLow ?? cur,
+        open: meta.regularMarketOpen ?? cur,
+        prevClose: prev, change, changePercent,
       };
     } catch (e: any) {
       this.logger.error(`getQuoteYahoo error: ${yahooSymbol}: ${errMsg(e)}`);
@@ -170,15 +178,7 @@ export class StockService {
     const { range, interval } = daysToRange(days);
 
     try {
-      const { data } = await axios.get(
-        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
-        {
-          // range 파라미터 사용 → crumb 없이도 클라우드에서 동작
-          params: { interval, range },
-          headers: YF_HEADERS,
-          timeout: 12000,
-        },
-      );
+      const data = await this.fetchYFChart(yahooSymbol, interval, range);
       const result = data?.chart?.result?.[0];
       if (!result) {
         const errCode = data?.chart?.error?.code ?? 'no result';
