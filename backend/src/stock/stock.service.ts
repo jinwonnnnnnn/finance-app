@@ -10,9 +10,10 @@ const YF_HEADERS = {
   Referer: 'https://finance.yahoo.com/',
 };
 
-// Railway IP → Yahoo Finance 차트 차단 우회: Vercel 프록시 경유
-// VERCEL_PROXY 환경변수: https://finance-app-jw.vercel.app/api/yf-proxy
-const YF_PROXY = process.env.VERCEL_PROXY ?? '';
+// Railway IP → Yahoo Finance 차단/타임아웃 우회: Vercel 프록시 경유
+// chart(query1)는 range 파라미터로 직접 통과 가능하지만
+// search(query2)는 ETIMEDOUT이므로 프록시를 기본으로 사용
+const YF_PROXY = process.env.VERCEL_PROXY ?? 'https://finance-app-jw.vercel.app/api/yf-proxy';
 
 function toYahooSymbol(symbol: string): string {
   if (/^\d{6}$/.test(symbol)) return `${symbol}.KS`;
@@ -70,10 +71,10 @@ export class StockService {
 
   private async searchYahoo(query: string, krOnly = false) {
     try {
-      const { data } = await axios.get('https://query2.finance.yahoo.com/v1/finance/search', {
-        params: { q: query, quotesCount: 15, newsCount: 0, enableFuzzyQuery: false },
-        headers: YF_HEADERS,
-        timeout: 8000,
+      // query2.finance.yahoo.com/search는 Railway에서 ETIMEDOUT → Vercel 프록시 경유
+      const { data } = await axios.get(YF_PROXY, {
+        params: { type: 'search', q: query, quotesCount: 15 },
+        timeout: 10000,
       });
       const quotes: any[] = data?.quotes ?? [];
       const filtered = krOnly
