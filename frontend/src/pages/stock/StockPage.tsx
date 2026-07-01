@@ -40,14 +40,17 @@ export default function StockPage({ market }: Props) {
   const [period, setPeriod] = useState(PERIODS[2]);
   const [search, setSearch] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeIdx, setActiveIdx] = useState(-1);
   const [watchlistMsg, setWatchlistMsg] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // market 탭 전환 시 검색창 초기화
-  useEffect(() => { setSearch(''); setSearchQuery(''); }, [market]);
+  useEffect(() => { setSearch(''); setSearchQuery(''); setActiveIdx(-1); }, [market]);
 
   // 입력 300ms 뒤 자동 검색
   useEffect(() => {
+    setActiveIdx(-1);
     if (search.trim().length < 2) { setSearchQuery(''); return; }
     const t = setTimeout(() => setSearchQuery(search.trim()), 300);
     return () => clearTimeout(t);
@@ -81,18 +84,14 @@ export default function StockPage({ market }: Props) {
   });
 
   useEffect(() => {
-    if (!searchResults.length) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setSearchQuery(''); setSearch(''); } };
     const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchQuery('');
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchQuery(''); setActiveIdx(-1);
+      }
     };
-    document.addEventListener('keydown', handleKey);
     document.addEventListener('mousedown', handleClick);
-    return () => {
-      document.removeEventListener('keydown', handleKey);
-      document.removeEventListener('mousedown', handleClick);
-    };
-  }, [searchResults.length]);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleSearch = () => {
     if (search.trim().length > 1) setSearchQuery(search.trim());
@@ -141,7 +140,26 @@ export default function StockPage({ market }: Props) {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                onKeyDown={(e) => {
+                  const total = Math.min(searchResults.length, 6);
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setActiveIdx((i) => (i + 1) % total);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setActiveIdx((i) => (i <= 0 ? total - 1 : i - 1));
+                  } else if (e.key === 'Enter') {
+                    if (activeIdx >= 0 && searchResults[activeIdx]) {
+                      const r = searchResults[activeIdx];
+                      setSearchParams({ symbol: r.symbol });
+                      setSearch(''); setSearchQuery(''); setActiveIdx(-1);
+                    } else {
+                      handleSearch();
+                    }
+                  } else if (e.key === 'Escape') {
+                    setSearchQuery(''); setSearch(''); setActiveIdx(-1);
+                  }
+                }}
                 placeholder={market === 'US' ? 'AAPL, TSLA, Apple...' : 'Samsung, Kakao, SK, Naver...'}
                 className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl pl-9 pr-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
               />
@@ -156,38 +174,49 @@ export default function StockPage({ market }: Props) {
             <AnimatePresence>
               {searchResults.length > 0 && (
                 <motion.div
+                  ref={dropdownRef}
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   className="absolute top-full left-0 right-0 mt-1.5 bg-[#111318] border border-white/[0.08] rounded-2xl overflow-hidden z-20 shadow-2xl"
                 >
-                  {searchResults.slice(0, 6).map((r: any) => (
+                  {searchResults.slice(0, 6).map((r: any, idx: number) => {
+                    const isActive = idx === activeIdx;
+                    return (
                     <button
                       key={r.symbol}
+                      onMouseEnter={() => setActiveIdx(idx)}
+                      onMouseLeave={() => setActiveIdx(-1)}
                       onClick={() => {
                         setSearchParams({ symbol: r.symbol });
-                        setSearch('');
-                        setSearchQuery('');
+                        setSearch(''); setSearchQuery(''); setActiveIdx(-1);
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-white/[0.04] transition text-sm flex items-center gap-3"
+                      className={`w-full text-left px-4 py-3 transition text-sm flex items-center gap-3 ${
+                        isActive
+                          ? 'bg-indigo-500/20 border-l-2 border-indigo-400'
+                          : 'hover:bg-white/[0.04] border-l-2 border-transparent'
+                      }`}
                     >
                       {market === 'KR' ? (
                         <>
-                          <span className="font-bold text-white truncate flex-1">
+                          <span className={`font-bold truncate flex-1 ${isActive ? 'text-indigo-200' : 'text-white'}`}>
                             {r.description || KR_NAMES[r.symbol] || r.symbol}
                           </span>
-                          <span className="text-[11px] text-slate-500 bg-white/[0.06] px-2 py-0.5 rounded-md shrink-0 font-mono">
+                          <span className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 font-mono ${
+                            isActive ? 'text-indigo-300 bg-indigo-500/20' : 'text-slate-500 bg-white/[0.06]'
+                          }`}>
                             {r.symbol}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span className="font-bold text-white shrink-0">{r.symbol}</span>
-                          <span className="text-slate-500 truncate">{r.description}</span>
+                          <span className={`font-bold shrink-0 ${isActive ? 'text-indigo-200' : 'text-white'}`}>{r.symbol}</span>
+                          <span className={`truncate ${isActive ? 'text-indigo-300' : 'text-slate-500'}`}>{r.description}</span>
                         </>
                       )}
                     </button>
-                  ))}
+                    );
+                  })}
                 </motion.div>
               )}
             </AnimatePresence>
