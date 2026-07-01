@@ -43,6 +43,9 @@ export default function StockPage({ market }: Props) {
   const [watchlistMsg, setWatchlistMsg] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
+  // market 탭 전환 시 검색창 초기화
+  useEffect(() => { setSearch(''); setSearchQuery(''); }, [market]);
+
   // 입력 300ms 뒤 자동 검색
   useEffect(() => {
     if (search.trim().length < 2) { setSearchQuery(''); return; }
