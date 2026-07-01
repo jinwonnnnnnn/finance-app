@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
+const YF_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
 function toYahooSymbol(symbol: string): string {
   if (/^\d{6}$/.test(symbol)) return `${symbol}.KS`;
   return symbol;
@@ -10,8 +17,6 @@ function toYahooSymbol(symbol: string): string {
 @Injectable()
 export class StockService {
   private readonly logger = new Logger(StockService.name);
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  private readonly yf = new (require('yahoo-finance2').default)();
 
   constructor(private config: ConfigService) {}
 
@@ -19,8 +24,10 @@ export class StockService {
     return this.config.get<string>('FINNHUB_TOKEN');
   }
 
+  // ── 검색 ──────────────────────────────────────────────────────────────────
+
   async searchSymbol(query: string, market = 'US') {
-    if (market === 'KR') return this.searchYahooKR(query);
+    if (market === 'KR') return this.searchYahoo(query, true);
     return this.searchFinnhub(query);
   }
 
@@ -40,24 +47,33 @@ export class StockService {
     }
   }
 
-  private async searchYahooKR(query: string) {
+  private async searchYahoo(query: string, krOnly = false) {
     try {
-      const results = await this.yf.search(query, {}, { validateResult: false });
-      this.logger.debug(`searchYahooKR raw count: ${(results.quotes ?? []).length}`);
-      const quotes = (results.quotes ?? []).filter(
-        (q: any) => ['KSC', 'KOE', 'KSE'].includes(q.exchange) ||
-          (q.symbol && /^\d{6}\.(KS|KQ)$/.test(q.symbol)),
-      );
-      return quotes.slice(0, 10).map((q: any) => ({
-        symbol: q.symbol?.replace(/\.(KS|KQ)$/, ''),
+      const { data } = await axios.get('https://query2.finance.yahoo.com/v1/finance/search', {
+        params: { q: query, quotesCount: 15, newsCount: 0, enableFuzzyQuery: false },
+        headers: YF_HEADERS,
+        timeout: 8000,
+      });
+      const quotes: any[] = data?.quotes ?? [];
+      const filtered = krOnly
+        ? quotes.filter(
+            (q) =>
+              ['KSC', 'KOE', 'KSE', 'KSX'].includes(q.exchange) ||
+              (q.symbol && /^\d{6}\.(KS|KQ)$/.test(q.symbol)),
+          )
+        : quotes;
+      return filtered.slice(0, 10).map((q) => ({
+        symbol: q.symbol?.replace(/\.(KS|KQ)$/, '') ?? q.symbol,
         description: q.shortname ?? q.longname ?? q.symbol,
         type: q.quoteType,
       }));
     } catch (e) {
-      this.logger.error('searchYahooKR error', e);
+      this.logger.error('searchYahoo error', e);
       return [];
     }
   }
+
+  // ── 현재가 ─────────────────────────────────────────────────────────────────
 
   async getQuote(symbol: string, market = 'US') {
     if (market === 'KR' || /^\d{6}$/.test(symbol)) return this.getQuoteYahoo(symbol);
@@ -87,78 +103,86 @@ export class StockService {
   }
 
   private async getQuoteYahoo(symbol: string) {
+    const yahooSymbol = toYahooSymbol(symbol);
     try {
-      const yahooSymbol = toYahooSymbol(symbol);
-      const data = await this.yf.quote(yahooSymbol, {}, { validateResult: false });
-      const prevClose = data.regularMarketPreviousClose ?? 0;
-      const current = data.regularMarketPrice ?? data.regularMarketPreviousClose ?? 0;
-      this.logger.debug(`getQuoteYahoo ${symbol}: price=${current}, prev=${prevClose}`);
+      const { data } = await axios.get(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
+        {
+          params: { interval: '1d', range: '1d' },
+          headers: YF_HEADERS,
+          timeout: 10000,
+        },
+      );
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta) {
+        this.logger.warn(`getQuoteYahoo: no meta for ${yahooSymbol}`);
+        return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
+      }
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? 0;
+      const current = meta.regularMarketPrice ?? prev;
+      const change = current - prev;
+      const changePercent = prev ? (change / prev) * 100 : 0;
+      this.logger.debug(`getQuoteYahoo ${yahooSymbol}: price=${current}, prev=${prev}`);
       return {
         symbol,
         current,
-        high: data.regularMarketDayHigh ?? current,
-        low: data.regularMarketDayLow ?? current,
-        open: data.regularMarketOpen ?? current,
-        prevClose,
-        change: data.regularMarketChange ?? (current - prevClose),
-        changePercent: data.regularMarketChangePercent ?? 0,
+        high: meta.regularMarketDayHigh ?? current,
+        low: meta.regularMarketDayLow ?? current,
+        open: meta.regularMarketOpen ?? current,
+        prevClose: prev,
+        change,
+        changePercent,
       };
     } catch (e) {
-      this.logger.error(`getQuoteYahoo error: ${symbol}`, e);
+      this.logger.error(`getQuoteYahoo error: ${yahooSymbol}`, e);
       return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
     }
   }
 
-  async getCandles(symbol: string, resolution: string, from: number, to: number, market = 'US') {
-    if (market === 'KR' || /^\d{6}$/.test(symbol)) return this.getCandlesYahoo(symbol, resolution, from, to);
-    return this.getCandlesFinnhub(symbol, resolution, from, to);
-  }
+  // ── 차트(캔들) ─────────────────────────────────────────────────────────────
 
-  private async getCandlesFinnhub(symbol: string, resolution: string, from: number, to: number) {
-    try {
-      const { data } = await axios.get('https://finnhub.io/api/v1/stock/candle', {
-        params: { symbol, resolution, from, to, token: this.token },
-        timeout: 10000,
-      });
-      if (data.s !== 'ok' || !data.t) return [];
-      return data.t.map((t: number, i: number) => ({
-        time: t,
-        open: data.o[i],
-        high: data.h[i],
-        low: data.l[i],
-        close: data.c[i],
-        volume: data.v[i],
-      }));
-    } catch (e) {
-      this.logger.error(`getCandlesFinnhub error: ${symbol}`, e);
-      return [];
-    }
+  async getCandles(symbol: string, resolution: string, from: number, to: number, market = 'US') {
+    // Finnhub 무료 플랜은 캔들 지원 안 함 → 모든 차트를 Yahoo Finance로 처리
+    return this.getCandlesYahoo(symbol, resolution, from, to);
   }
 
   private async getCandlesYahoo(symbol: string, resolution: string, from: number, to: number) {
+    const yahooSymbol = toYahooSymbol(symbol);
+    const intervalMap: Record<string, string> = {
+      '1': '1m', '5': '5m', '15': '15m', '60': '60m',
+      'D': '1d', 'W': '1wk', 'M': '1mo',
+    };
+    const interval = intervalMap[resolution] ?? '1d';
     try {
-      const yahooSymbol = toYahooSymbol(symbol);
-      const intervalMap: Record<string, '1d' | '1wk' | '1mo' | '60m' | '5m'> = {
-        '5': '5m', '60': '60m', 'D': '1d', 'W': '1wk', 'M': '1mo',
-      };
-      const interval = intervalMap[resolution] ?? '1d';
-      const data = await this.yf.chart(yahooSymbol, {
-        period1: new Date(from * 1000),
-        period2: new Date(to * 1000),
-        interval,
-      }, { validateResult: false });
-
-      return (data.quotes ?? [])
-        .filter((q: any) => q.close != null)
-        .map((q: any) => ({
-          time: Math.floor(new Date(q.date).getTime() / 1000),
-          open: q.open, high: q.high, low: q.low, close: q.close, volume: q.volume,
-        }));
+      const { data } = await axios.get(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}`,
+        {
+          params: { interval, period1: from, period2: to },
+          headers: YF_HEADERS,
+          timeout: 12000,
+        },
+      );
+      const result = data?.chart?.result?.[0];
+      if (!result) return [];
+      const timestamps: number[] = result.timestamp ?? [];
+      const ohlcv = result.indicators?.quote?.[0] ?? {};
+      return timestamps
+        .map((t, i) => ({
+          time: t,
+          open: ohlcv.open?.[i] ?? null,
+          high: ohlcv.high?.[i] ?? null,
+          low: ohlcv.low?.[i] ?? null,
+          close: ohlcv.close?.[i] ?? null,
+          volume: ohlcv.volume?.[i] ?? null,
+        }))
+        .filter((c) => c.close != null);
     } catch (e) {
-      this.logger.error(`getCandlesYahoo error: ${symbol}`, e);
+      this.logger.error(`getCandlesYahoo error: ${yahooSymbol}`, e);
       return [];
     }
   }
+
+  // ── 뉴스 ──────────────────────────────────────────────────────────────────
 
   async getFinnhubNews(_symbols: string[]) {
     try {

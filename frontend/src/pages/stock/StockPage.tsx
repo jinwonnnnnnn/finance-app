@@ -240,7 +240,11 @@ export default function StockPage({ market }: Props) {
               <div key={item.label}>
                 <p className="text-slate-600 text-[10px] uppercase tracking-wider mb-1">{item.label}</p>
                 <p className="text-white text-sm font-semibold tabular-nums">
-                  {item.value ? `${currency}${item.value.toFixed(2)}` : '—'}
+                  {item.value
+                    ? market === 'KR'
+                      ? `₩${Math.floor(item.value).toLocaleString()}`
+                      : `$${item.value.toFixed(2)}`
+                    : '—'}
                 </p>
               </div>
             ))}
