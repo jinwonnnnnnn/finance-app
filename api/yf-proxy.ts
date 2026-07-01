@@ -1,4 +1,5 @@
-// Vercel 서버리스 프록시 — Railway IP → Yahoo Finance 차단 우회 + crumb 인증
+// Vercel 서버리스 프록시 — repo 루트 api/ (outputDirectory 무관하게 Vercel이 반드시 인식)
+// Railway IP → Yahoo Finance 차단 우회 + crumb 인증으로 v8 API 404 해결
 export const config = { runtime: 'nodejs' };
 
 const UA =
@@ -11,18 +12,21 @@ const BASE_HEADERS = {
   Referer: 'https://finance.yahoo.com/',
 };
 
+// 모듈 레벨 캐시 — warm 인스턴스 재사용 (cold start 시 재취득)
 let sessionCache: { crumb: string; cookie: string; expiry: number } | null = null;
 
 async function getSession(): Promise<{ crumb: string; cookie: string } | null> {
   if (sessionCache && Date.now() < sessionCache.expiry) return sessionCache;
 
   try {
+    // 1단계: Yahoo Finance 세션 쿠키 취득
     const r1 = await fetch('https://fc.yahoo.com/', {
       headers: { 'User-Agent': UA },
       redirect: 'follow',
     });
     const cookie1 = parseCookies(r1.headers.get('set-cookie') ?? '');
 
+    // 2단계: crumb 취득
     const r2 = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
       headers: { ...BASE_HEADERS, Cookie: cookie1 },
     });
@@ -74,6 +78,7 @@ export default async function handler(req: any, res: any) {
   try {
     const session = await getSession();
 
+    // crumb이 있으면 URL에 추가
     if (session?.crumb && type !== 'search') {
       url += `&crumb=${encodeURIComponent(session.crumb)}`;
     }
