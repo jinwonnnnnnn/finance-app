@@ -41,8 +41,8 @@ export class StockService {
         .filter((r: any) => r.type === 'Common Stock' && !r.symbol.includes('.'))
         .slice(0, 10)
         .map((r: any) => ({ symbol: r.symbol, description: r.description, type: r.type }));
-    } catch (e) {
-      this.logger.error('searchFinnhub error', e);
+    } catch (e: any) {
+      this.logger.error(`searchFinnhub error: ${e?.message ?? e}`);
       return [];
     }
   }
@@ -67,8 +67,8 @@ export class StockService {
         description: q.shortname ?? q.longname ?? q.symbol,
         type: q.quoteType,
       }));
-    } catch (e) {
-      this.logger.error('searchYahoo error', e);
+    } catch (e: any) {
+      this.logger.error(`searchYahoo error: ${e?.message ?? e}`);
       return [];
     }
   }
@@ -96,8 +96,8 @@ export class StockService {
         change: (data.c ?? 0) - (data.pc ?? 0),
         changePercent: data.dp ?? 0,
       };
-    } catch (e) {
-      this.logger.error(`getQuoteFinnhub error: ${symbol}`, e);
+    } catch (e: any) {
+      this.logger.error(`getQuoteFinnhub error: ${symbol}: ${e?.message ?? e}`);
       return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
     }
   }
@@ -133,8 +133,8 @@ export class StockService {
         change,
         changePercent,
       };
-    } catch (e) {
-      this.logger.error(`getQuoteYahoo error: ${yahooSymbol}`, e);
+    } catch (e: any) {
+      this.logger.error(`getQuoteYahoo error: ${yahooSymbol}: ${e?.message ?? e}`);
       return { symbol, current: 0, high: 0, low: 0, open: 0, prevClose: 0, change: 0, changePercent: 0 };
     }
   }
@@ -176,8 +176,8 @@ export class StockService {
           volume: ohlcv.volume?.[i] ?? null,
         }))
         .filter((c) => c.close != null);
-    } catch (e) {
-      this.logger.error(`getCandlesYahoo error: ${yahooSymbol}`, e);
+    } catch (e: any) {
+      this.logger.error(`getCandlesYahoo error: ${yahooSymbol}: ${e?.message ?? e}`);
       return [];
     }
   }
