@@ -10,7 +10,7 @@ import InvestmentAdviceCard from '../../components/ui/InvestmentAdviceCard';
 import GlossaryModal from '../../components/ui/GlossaryModal';
 import AppTour from '../../components/ui/AppTour';
 
-const POPULAR_SYMBOLS = [
+const US_SYMBOLS = [
   { symbol: 'AAPL', name: 'Apple', market: 'US' as const },
   { symbol: 'TSLA', name: 'Tesla', market: 'US' as const },
   { symbol: 'NVDA', name: 'NVIDIA', market: 'US' as const },
@@ -19,12 +19,51 @@ const POPULAR_SYMBOLS = [
   { symbol: 'AMZN', name: 'Amazon', market: 'US' as const },
 ];
 
+const KR_SYMBOLS = [
+  { symbol: '005930', name: '삼성전자', market: 'KR' as const },
+  { symbol: '000660', name: 'SK하이닉스', market: 'KR' as const },
+  { symbol: '035420', name: 'NAVER', market: 'KR' as const },
+  { symbol: '035720', name: '카카오', market: 'KR' as const },
+  { symbol: '051910', name: 'LG화학', market: 'KR' as const },
+  { symbol: '105560', name: 'KB금융', market: 'KR' as const },
+];
+
 const INTEREST_LABELS: Record<string, string> = {
   STOCK_KR: '국내주식',
   STOCK_US: '해외주식',
   COIN: '코인',
   PENSION: '퇴직연금',
 };
+
+const INTEREST_PATHS: Record<string, string> = {
+  STOCK_KR: '/stock/kr',
+  STOCK_US: '/stock/us',
+  COIN: '/coin',
+  PENSION: '/glossary?category=퇴직연금',
+};
+
+function getPopularSymbols(interests: string[] = []) {
+  const hasKR = interests.includes('STOCK_KR');
+  const hasUS = interests.includes('STOCK_US');
+  if (hasKR && hasUS) return [...KR_SYMBOLS.slice(0, 3), ...US_SYMBOLS.slice(0, 3)];
+  if (hasKR) return KR_SYMBOLS;
+  return US_SYMBOLS;
+}
+
+function getPopularTitle(interests: string[] = []) {
+  const hasKR = interests.includes('STOCK_KR');
+  const hasUS = interests.includes('STOCK_US');
+  if (hasKR && hasUS) return '인기 종목';
+  if (hasKR) return '인기 종목 (국내)';
+  return '인기 종목 (해외)';
+}
+
+function getPopularLink(interests: string[] = []) {
+  const hasKR = interests.includes('STOCK_KR');
+  const hasUS = interests.includes('STOCK_US');
+  if (hasKR && !hasUS) return '/stock/kr';
+  return '/stock/us';
+}
 
 function SectionHeader({ title, to, cta }: { title: string; to?: string; cta?: string }) {
   return (
@@ -53,6 +92,12 @@ export default function DashboardPage() {
     queryFn: () => api.get('/glossary').then((r) => r.data.slice(0, 3)),
   });
 
+  const interests = user?.interests ?? [];
+  const popularSymbols = getPopularSymbols(interests);
+  const popularTitle = getPopularTitle(interests);
+  const popularLink = getPopularLink(interests);
+  const coinOnly = interests.length > 0 && !interests.includes('STOCK_KR') && !interests.includes('STOCK_US');
+
   return (
     <div className="min-h-screen bg-[#08090d]">
       <Navbar />
@@ -72,13 +117,14 @@ export default function DashboardPage() {
             <p className="text-slate-500 text-xs mb-1">안녕하세요</p>
             <h1 className="text-xl font-bold text-white mb-3">{user?.nickname}님, 좋은 하루예요</h1>
             <div className="flex flex-wrap gap-1.5">
-              {user?.interests?.map((i) => (
-                <span
+              {interests.map((i) => (
+                <Link
                   key={i}
-                  className="bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  to={INTEREST_PATHS[i] ?? '/dashboard'}
+                  className="bg-indigo-500/15 text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/25 hover:border-indigo-400/40 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all"
                 >
                   {INTEREST_LABELS[i] ?? i}
-                </span>
+                </Link>
               ))}
             </div>
           </div>
@@ -127,19 +173,40 @@ export default function DashboardPage() {
           )}
         </motion.section>
 
-        {/* 인기 종목 */}
+        {/* 인기 종목 — 코인 전용 유저는 코인 CTA 표시 */}
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.15 }}
           className="mb-5"
         >
-          <SectionHeader title="인기 종목" to="/stock/us" cta="더보기" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-            {POPULAR_SYMBOLS.map((s) => (
-              <StockCard key={s.symbol} symbol={s.symbol} name={s.name} market={s.market} />
-            ))}
-          </div>
+          {coinOnly ? (
+            <>
+              <SectionHeader title="암호화폐" to="/coin" cta="더보기" />
+              <Link
+                to="/coin"
+                className="flex items-center gap-4 bg-[#111318] border border-white/[0.06] hover:border-indigo-500/30 hover:bg-indigo-950/10 rounded-2xl p-5 transition group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-300 text-xl">₿</div>
+                <div>
+                  <p className="text-slate-200 text-sm font-medium group-hover:text-white transition">실시간 코인 시세 보기</p>
+                  <p className="text-slate-500 text-xs mt-0.5">비트코인, 이더리움 등 상위 30개 코인</p>
+                </div>
+                <svg className="w-4 h-4 text-slate-600 ml-auto group-hover:text-indigo-400 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </Link>
+            </>
+          ) : (
+            <>
+              <SectionHeader title={popularTitle} to={popularLink} cta="더보기" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {popularSymbols.map((s) => (
+                  <StockCard key={s.symbol} symbol={s.symbol} name={s.name} market={s.market} />
+                ))}
+              </div>
+            </>
+          )}
         </motion.section>
 
         {/* 오늘의 금융 용어 */}

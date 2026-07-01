@@ -10,6 +10,8 @@ import StockPage from './pages/stock/StockPage';
 import GlossaryPage from './pages/glossary/GlossaryPage';
 import NewsPage from './pages/news/NewsPage';
 import FloatingChatBot from './components/ui/FloatingChatBot';
+import CoinPage from './pages/coin/CoinPage';
+import SettingsPage from './pages/settings/SettingsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -50,7 +52,10 @@ export default function App() {
             <SurveyGuard><StockPage market="KR" /></SurveyGuard>
           } />
           <Route path="/coin" element={
-            <SurveyGuard><StockPage market="US" /></SurveyGuard>
+            <SurveyGuard><CoinPage /></SurveyGuard>
+          } />
+          <Route path="/settings" element={
+            <SurveyGuard><SettingsPage /></SurveyGuard>
           } />
           <Route path="/glossary" element={
             <SurveyGuard><GlossaryPage /></SurveyGuard>

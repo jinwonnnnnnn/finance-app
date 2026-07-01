@@ -16,4 +16,14 @@ export class UsersController {
   saveSurvey(@Req() req: any, @Body() body: { surveyResult: any; interests: string[] }) {
     return this.usersService.saveSurvey(req.user.id, body.surveyResult, body.interests);
   }
+
+  @Patch('nickname')
+  updateNickname(@Req() req: any, @Body() body: { nickname: string }) {
+    return this.usersService.updateNickname(req.user.id, body.nickname);
+  }
+
+  @Patch('interests')
+  updateInterests(@Req() req: any, @Body() body: { interests: string[] }) {
+    return this.usersService.updateInterests(req.user.id, body.interests);
+  }
 }

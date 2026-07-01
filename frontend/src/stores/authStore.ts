@@ -41,9 +41,11 @@ export const useAuthStore = create<AuthStore>()(
       // 프로필 업데이트 (설문 완료 후 surveyDone: true 반영 등)
       setUser: (user) => set({ user }),
 
-      // 로그아웃: 모든 인증 데이터 삭제
+      // 로그아웃: 인증 데이터만 삭제 (투어 완료 여부 등 앱 설정은 유지)
       logout: () => {
-        localStorage.clear();
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('auth-storage');
         set({ user: null, accessToken: null, refreshToken: null });
       },
     }),
