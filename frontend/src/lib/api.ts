@@ -18,28 +18,60 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 동시에 여러 요청이 401을 받아도 refresh 는 한 번만 수행하도록 공유(락)
+let refreshPromise: Promise<string> | null = null;
+
+function logoutAndRedirect() {
+  localStorage.clear();
+  if (window.location.pathname !== '/login') window.location.href = '/login';
+}
+
 // 응답 인터셉터: 401(인증 만료) 시 리프레시 토큰으로 자동 갱신
+// - 요청당 1회만 재시도(_retry 가드)해 401→refresh→재요청 무한 루프 차단
+// - refresh 엔드포인트 자체의 401 은 즉시 로그아웃(자기 재귀 방지)
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401) {
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        try {
-          // 리프레시 토큰으로 새 액세스 토큰 발급
-          const { data } = await axios.post('/api/auth/refresh', { refreshToken });
-          localStorage.setItem('accessToken', data.accessToken);
-          localStorage.setItem('refreshToken', data.refreshToken);
-          // 실패했던 원래 요청을 새 토큰으로 재시도
-          error.config.headers.Authorization = `Bearer ${data.accessToken}`;
-          return api(error.config);
-        } catch {
-          // 리프레시도 실패하면 로그아웃 처리
-          localStorage.clear();
-          window.location.href = '/login';
-        }
-      }
+    const original = error.config;
+    const status = error.response?.status;
+
+    if (status !== 401 || !original || original._retry) {
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+    // refresh 호출 자체가 401 이면 더 이상 시도하지 않고 로그아웃
+    if (typeof original.url === 'string' && original.url.includes('/auth/refresh')) {
+      logoutAndRedirect();
+      return Promise.reject(error);
+    }
+
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      logoutAndRedirect();
+      return Promise.reject(error);
+    }
+
+    original._retry = true;
+    try {
+      // 동시 401 은 하나의 refresh 요청을 공유
+      if (!refreshPromise) {
+        refreshPromise = axios
+          .post('/api/auth/refresh', { refreshToken })
+          .then((r) => {
+            localStorage.setItem('accessToken', r.data.accessToken);
+            localStorage.setItem('refreshToken', r.data.refreshToken);
+            return r.data.accessToken as string;
+          })
+          .finally(() => {
+            refreshPromise = null;
+          });
+      }
+      const newToken = await refreshPromise;
+      original.headers = original.headers ?? {};
+      original.headers.Authorization = `Bearer ${newToken}`;
+      return api(original);
+    } catch {
+      logoutAndRedirect();
+      return Promise.reject(error);
+    }
   },
 );
