@@ -43,7 +43,7 @@ export default function GlossaryPage() {
   const QUICK_QUESTIONS = ['초보자에게 어떻게 설명하나요?', '어떤 상황에서 중요한가요?', '주의할 점은?'];
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 pt-16 pb-24 md:pb-10">
 

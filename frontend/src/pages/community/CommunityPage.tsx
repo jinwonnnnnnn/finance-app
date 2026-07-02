@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import Navbar from '../../components/layout/Navbar';
+import { useConfirm } from '../../components/ui/ConfirmModal';
 
 // ── Types ──────────────────────────────────────────────
 interface Author { id: string; nickname: string }
@@ -162,6 +163,7 @@ function CommentRow({ postId, comment }: { postId: string; comment: Comment }) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isMine = currentUserId === comment.author.id;
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.content ?? '');
 
@@ -218,7 +220,15 @@ function CommentRow({ postId, comment }: { postId: string; comment: Comment }) {
                 수정
               </button>
               <button
-                onClick={() => { if (confirm('댓글을 삭제할까요?')) deleteComment(); }}
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: '댓글을 삭제할까요?',
+                    message: '삭제된 댓글은 되돌릴 수 없어요.',
+                    confirmText: '삭제',
+                    variant: 'danger',
+                  });
+                  if (ok) deleteComment();
+                }}
                 className="text-slate-500 hover:text-rose-400 text-[10px]"
               >
                 삭제
@@ -324,6 +334,7 @@ function PostCard({ post }: { post: Post }) {
   const currentUserId = useAuthStore((s) => s.user?.id);
   const isMine = currentUserId === post.author.id;
   const qc = useQueryClient();
+  const confirm = useConfirm();
 
   const [expanded, setExpanded] = useState(false);
   const [liked, setLiked] = useState(post.liked);
@@ -416,7 +427,15 @@ function PostCard({ post }: { post: Post }) {
                     수정
                   </button>
                   <button
-                    onClick={() => { if (confirm('게시글을 삭제할까요?')) deletePost(); }}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: '게시글을 삭제할까요?',
+                        message: '삭제된 게시글은 되돌릴 수 없어요.',
+                        confirmText: '삭제',
+                        variant: 'danger',
+                      });
+                      if (ok) deletePost();
+                    }}
                     className="text-slate-500 hover:text-rose-400 text-[11px] transition"
                   >
                     삭제
@@ -579,7 +598,7 @@ export default function CommunityPage() {
   }, [qc]);
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
 
       <main className="max-w-2xl mx-auto px-4 pt-16 pb-28 md:pb-10">

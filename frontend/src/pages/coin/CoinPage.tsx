@@ -97,7 +97,7 @@ export default function CoinPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 pt-16 pb-24 md:pb-10">
         {/* 헤더 */}

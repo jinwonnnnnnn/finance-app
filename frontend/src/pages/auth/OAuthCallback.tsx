@@ -25,7 +25,7 @@ export default function OAuthCallback() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
+    <div className="min-h-dvh bg-[#0f1117] flex items-center justify-center">
       <div className="text-white text-center">
         <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto mb-4" />
         <p>로그인 처리 중...</p>

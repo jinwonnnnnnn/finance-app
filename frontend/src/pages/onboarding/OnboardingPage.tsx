@@ -87,7 +87,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#08090d] flex flex-col items-center justify-center p-6">
+    <div className="min-h-dvh bg-[#08090d] flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
         {/* 로고 */}
         <div className="flex items-center gap-2 mb-10 justify-center">

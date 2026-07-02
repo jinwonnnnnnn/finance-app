@@ -105,7 +105,7 @@ export default function NewsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 pt-20 pb-24 md:pb-10">

@@ -128,14 +128,14 @@ export default function StockPage({ market }: Props) {
     : symbol;
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 pt-16 pb-24 md:pb-10">
         {/* 검색 + 관심종목 */}
         <div className="flex gap-2 mt-4 mb-4">
-          <div ref={searchRef} className="relative flex-1 flex gap-2">
-            <div className="relative flex-1">
+          <div ref={searchRef} className="relative flex-1 min-w-0 flex gap-2">
+            <div className="relative flex-1 min-w-0">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                 <svg className="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />

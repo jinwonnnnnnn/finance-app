@@ -57,14 +57,14 @@ export default function GlossaryModal({ item, onClose }: Props) {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1117] border-t border-white/[0.07] rounded-t-3xl max-h-[88vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f1117] border-t border-white/[0.07] rounded-t-3xl max-h-[88dvh] overflow-y-auto overscroll-contain"
           >
             {/* 드래그 핸들 */}
             <div className="sticky top-0 bg-[#0f1117] pt-3 pb-1 flex flex-col items-center border-b border-white/[0.04] z-10">
               <div className="w-9 h-1 bg-white/10 rounded-full mb-3" />
             </div>
 
-            <div className="p-5 pb-8">
+            <div className="p-5 pb-8 pb-safe">
               {/* 헤더 */}
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -136,8 +136,9 @@ export default function GlossaryModal({ item, onClose }: Props) {
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && askAI()}
+                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: 'center' }), 250)}
                     placeholder={`"${item.term}"에 대해 궁금한 점...`}
-                    className="flex-1 bg-[#111318] border border-white/[0.07] rounded-2xl px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
+                    className="flex-1 min-w-0 bg-[#111318] border border-white/[0.07] rounded-2xl px-4 py-3 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
                   />
                   <button
                     onClick={() => askAI()}

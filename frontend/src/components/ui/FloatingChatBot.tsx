@@ -95,7 +95,7 @@ export default function FloatingChatBot() {
               onClick={() => setOpen(false)}
             />
             <motion.div
-              className="fixed inset-x-0 bottom-0 md:inset-x-auto md:bottom-20 md:right-6 md:w-[340px] h-[76vh] md:h-[480px] z-50 flex flex-col bg-[#0f1117] border border-white/[0.07] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden"
+              className="fixed inset-x-0 bottom-0 md:inset-x-auto md:bottom-20 md:right-6 md:w-[340px] h-[76dvh] md:h-[480px] z-50 flex flex-col bg-[#0f1117] border border-white/[0.07] rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden"
               initial={{ y: '100%', opacity: 0.5 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
@@ -174,7 +174,7 @@ export default function FloatingChatBot() {
               )}
 
               {/* Input */}
-              <div className="px-3 pb-4 pt-2 border-t border-white/[0.06] flex-shrink-0">
+              <div className="px-3 pb-4 pt-2 pb-safe border-t border-white/[0.06] flex-shrink-0">
                 <form
                   onSubmit={(e) => { e.preventDefault(); send(input); }}
                   className="flex gap-2 items-center bg-[#1a1d27] border border-white/[0.07] rounded-2xl px-3.5 py-2.5"
@@ -183,6 +183,7 @@ export default function FloatingChatBot() {
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onFocus={() => setTimeout(() => bottomRef.current?.scrollIntoView({ block: 'end' }), 250)}
                     placeholder="궁금한 걸 물어보세요..."
                     className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 outline-none"
                     disabled={isPending}

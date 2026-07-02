@@ -36,7 +36,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#08090d] flex">
+    <div className="min-h-dvh bg-[#08090d] flex">
       {/* 왼쪽 브랜드 패널 (데스크톱) */}
       <div className="hidden lg:flex flex-col justify-between w-[440px] shrink-0 p-12 relative overflow-hidden border-r border-white/[0.04]">
         <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-br from-indigo-950/40 via-[#08090d] to-violet-950/20" />

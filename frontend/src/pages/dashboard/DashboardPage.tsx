@@ -98,7 +98,7 @@ export default function DashboardPage() {
   const popularLink = getPopularLink(interests);
 
   return (
-    <div className="min-h-screen bg-[#08090d]">
+    <div className="min-h-dvh bg-[#08090d]">
       <Navbar />
       <AppTour />
 

@@ -13,6 +13,7 @@ import FloatingChatBot from './components/ui/FloatingChatBot';
 import CoinPage from './pages/coin/CoinPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import CommunityPage from './pages/community/CommunityPage';
+import { ConfirmProvider } from './components/ui/ConfirmModal';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -33,6 +34,7 @@ function SurveyGuard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ConfirmProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -72,6 +74,7 @@ export default function App() {
         </Routes>
         <FloatingChatBot />
       </BrowserRouter>
+      </ConfirmProvider>
     </QueryClientProvider>
   );
 }
