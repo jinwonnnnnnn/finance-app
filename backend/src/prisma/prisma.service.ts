@@ -19,6 +19,9 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get glossary() { return this._client.glossary; }
   get watchlist() { return this._client.watchlist; }
   get alert() { return this._client.alert; }
+  get post() { return this._client.post; }
+  get postLike() { return this._client.postLike; }
+  get comment() { return this._client.comment; }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   $transaction(...args: any[]) { return this._client.$transaction(...args); }
