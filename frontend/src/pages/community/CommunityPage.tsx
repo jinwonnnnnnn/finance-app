@@ -2,25 +2,34 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../stores/authStore';
 import Navbar from '../../components/layout/Navbar';
 
 // ── Types ──────────────────────────────────────────────
 interface Author { id: string; nickname: string }
 interface Post {
   id: string;
-  content: string;
+  content: string | null;
   tag: string;
   author: Author;
   likeCount: number;
   commentCount: number;
   liked: boolean;
   createdAt: string;
+  updatedAt?: string | null;
+  deletedAt?: string | null;
+  edited?: boolean;
+  deleted?: boolean;
 }
 interface Comment {
   id: string;
-  content: string;
+  content: string | null;
   author: Author;
   createdAt: string;
+  updatedAt?: string | null;
+  deletedAt?: string | null;
+  edited?: boolean;
+  deleted?: boolean;
 }
 
 // ── Constants ──────────────────────────────────────────
@@ -46,6 +55,17 @@ function timeAgo(iso: string) {
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
   return `${Math.floor(diff / 86400)}일 전`;
+}
+
+// 절대 일시 (예: 2026. 7. 2. 14:30) — 수정/삭제 일시 표시용
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 function Avatar({ nickname, size = 'sm' }: { nickname: string; size?: 'sm' | 'md' }) {
@@ -137,6 +157,114 @@ function WriteModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (p
   );
 }
 
+// ── Single Comment Row ─────────────────────────────────
+function CommentRow({ postId, comment }: { postId: string; comment: Comment }) {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isMine = currentUserId === comment.author.id;
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.content ?? '');
+
+  const { mutate: updateComment, isPending: updating } = useMutation({
+    mutationFn: (content: string) =>
+      api
+        .patch(`/community/posts/${postId}/comments/${comment.id}`, { content })
+        .then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['comments', postId] });
+      setEditing(false);
+    },
+  });
+
+  const { mutate: deleteComment } = useMutation({
+    mutationFn: () =>
+      api.delete(`/community/posts/${postId}/comments/${comment.id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', postId] }),
+  });
+
+  // 삭제된 댓글: 자리는 남기고 내용만 가린다
+  if (comment.deleted) {
+    return (
+      <div className="flex gap-2">
+        <div className="w-8 h-8 rounded-full bg-white/[0.03] flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-slate-600 text-xs italic mt-1.5">삭제된 댓글입니다</p>
+          {comment.deletedAt && (
+            <span className="text-slate-700 text-[10px]">
+              삭제됨 · {formatDateTime(comment.deletedAt)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2 group/comment">
+      <Avatar nickname={comment.author.nickname} size="sm" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-slate-200 text-xs font-semibold">{comment.author.nickname}</span>
+          <span className="text-slate-600 text-[10px]">{timeAgo(comment.createdAt)}</span>
+          {comment.edited && (
+            <span className="text-slate-600 text-[10px]">· 수정됨</span>
+          )}
+          {isMine && !editing && (
+            <span className="ml-auto flex gap-2 opacity-0 group-hover/comment:opacity-100 transition">
+              <button
+                onClick={() => { setDraft(comment.content ?? ''); setEditing(true); }}
+                className="text-slate-500 hover:text-indigo-400 text-[10px]"
+              >
+                수정
+              </button>
+              <button
+                onClick={() => { if (confirm('댓글을 삭제할까요?')) deleteComment(); }}
+                className="text-slate-500 hover:text-rose-400 text-[10px]"
+              >
+                삭제
+              </button>
+            </span>
+          )}
+        </div>
+
+        {editing ? (
+          <div className="mt-1 flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={200}
+              autoFocus
+              className="flex-1 bg-[#1a1d27] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500/30"
+            />
+            <button
+              onClick={() => draft.trim() && updateComment(draft.trim())}
+              disabled={!draft.trim() || updating}
+              className="px-2.5 py-1.5 bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-40 text-white text-[11px] font-medium rounded-lg transition"
+            >
+              저장
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="px-2 py-1.5 text-slate-500 hover:text-white text-[11px] transition"
+            >
+              취소
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{comment.content}</p>
+            {comment.edited && comment.updatedAt && (
+              <span className="text-slate-700 text-[10px]">
+                수정됨 · {formatDateTime(comment.updatedAt)}
+              </span>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Comment Section ────────────────────────────────────
 function CommentSection({ postId }: { postId: string }) {
   const [input, setInput] = useState('');
@@ -163,16 +291,7 @@ function CommentSection({ postId }: { postId: string }) {
       ) : (
         <div className="space-y-2.5 mb-3">
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-2">
-              <Avatar nickname={c.author.nickname} size="sm" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-slate-200 text-xs font-semibold">{c.author.nickname}</span>
-                  <span className="text-slate-600 text-[10px]">{timeAgo(c.createdAt)}</span>
-                </div>
-                <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{c.content}</p>
-              </div>
-            </div>
+            <CommentRow key={c.id} postId={postId} comment={c} />
           ))}
           {comments.length === 0 && (
             <p className="text-slate-600 text-xs">첫 댓글을 남겨보세요</p>
@@ -202,10 +321,16 @@ function CommentSection({ postId }: { postId: string }) {
 
 // ── Post Card ──────────────────────────────────────────
 function PostCard({ post }: { post: Post }) {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isMine = currentUserId === post.author.id;
+  const qc = useQueryClient();
+
   const [expanded, setExpanded] = useState(false);
   const [liked, setLiked] = useState(post.liked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [contentExpanded, setContentExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(post.content ?? '');
 
   const { mutate: toggleLike } = useMutation({
     mutationFn: () => api.post(`/community/posts/${post.id}/like`).then((r) => r.data),
@@ -219,7 +344,47 @@ function PostCard({ post }: { post: Post }) {
     },
   });
 
+  const invalidatePosts = () =>
+    qc.invalidateQueries({ queryKey: ['community-posts'] });
+
+  const { mutate: updatePost, isPending: updating } = useMutation({
+    mutationFn: (content: string) =>
+      api.patch(`/community/posts/${post.id}`, { content }).then((r) => r.data),
+    onSuccess: () => {
+      invalidatePosts();
+      setEditing(false);
+    },
+  });
+
+  const { mutate: deletePost } = useMutation({
+    mutationFn: () => api.delete(`/community/posts/${post.id}`).then((r) => r.data),
+    onSuccess: invalidatePosts,
+  });
+
   const meta = TAG_META[post.tag] ?? TAG_META.FREE;
+  const content = post.content ?? '';
+
+  // 삭제된 게시글: 자리는 남기고 내용만 placeholder로 가린다
+  if (post.deleted) {
+    return (
+      <motion.div
+        layout
+        className="bg-[#0d0f14] border border-white/[0.04] rounded-2xl p-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-white/[0.03] flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-slate-600 text-sm italic">삭제된 게시글입니다</p>
+            {post.deletedAt && (
+              <span className="text-slate-700 text-[11px]">
+                삭제됨 · {formatDateTime(post.deletedAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -236,25 +401,81 @@ function PostCard({ post }: { post: Post }) {
               <span className={`text-[10px] font-medium border rounded-full px-2 py-0.5 ${meta.color}`}>
                 {meta.label}
               </span>
+              {post.edited && (
+                <span className="text-slate-600 text-[10px]">· 수정됨</span>
+              )}
             </div>
-            <span className="text-slate-600 text-[11px] flex-shrink-0">{timeAgo(post.createdAt)}</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-slate-600 text-[11px]">{timeAgo(post.createdAt)}</span>
+              {isMine && !editing && (
+                <>
+                  <button
+                    onClick={() => { setDraft(content); setEditing(true); }}
+                    className="text-slate-500 hover:text-indigo-400 text-[11px] transition"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => { if (confirm('게시글을 삭제할까요?')) deletePost(); }}
+                    className="text-slate-500 hover:text-rose-400 text-[11px] transition"
+                  >
+                    삭제
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 내용 */}
       <div className="mb-3">
-        <p className={`text-slate-300 text-sm leading-relaxed whitespace-pre-wrap ${!contentExpanded ? 'line-clamp-4' : ''}`}>
-          {post.content}
-        </p>
-        {post.content.split('\n').length > 4 || post.content.length > 200 ? (
-          <button
-            onClick={() => setContentExpanded((v) => !v)}
-            className="text-indigo-400/70 text-xs mt-1 hover:text-indigo-400 transition"
-          >
-            {contentExpanded ? '접기' : '더보기'}
-          </button>
-        ) : null}
+        {editing ? (
+          <div>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={500}
+              rows={4}
+              autoFocus
+              className="w-full bg-[#1a1d27] border border-white/[0.07] rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/40 resize-none leading-relaxed"
+            />
+            <div className="flex items-center justify-end gap-2 mt-2">
+              <button
+                onClick={() => setEditing(false)}
+                className="px-3 py-1.5 text-slate-500 hover:text-white text-xs transition"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => draft.trim() && updatePost(draft.trim())}
+                disabled={!draft.trim() || updating}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition"
+              >
+                {updating ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className={`text-slate-300 text-sm leading-relaxed whitespace-pre-wrap ${!contentExpanded ? 'line-clamp-4' : ''}`}>
+              {content}
+            </p>
+            {content.split('\n').length > 4 || content.length > 200 ? (
+              <button
+                onClick={() => setContentExpanded((v) => !v)}
+                className="text-indigo-400/70 text-xs mt-1 hover:text-indigo-400 transition"
+              >
+                {contentExpanded ? '접기' : '더보기'}
+              </button>
+            ) : null}
+            {post.edited && post.updatedAt && (
+              <p className="text-slate-700 text-[10px] mt-1.5">
+                수정됨 · {formatDateTime(post.updatedAt)}
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       {/* 액션 */}
