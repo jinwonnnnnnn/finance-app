@@ -12,4 +12,4 @@ RUN npx prisma generate
 RUN pnpm build
 
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push && node /app/dist/src/main"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma db push && node /app/dist/src/main"]
