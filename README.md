@@ -39,7 +39,10 @@ API 상태   기능 구현       AI 분석           Vercel +
 
     ▼
 design-engineer  ← UI/UX 개선 전담
-qa-engineer      ← 배포 후 API + 브라우저 검증
+
+    ▼  2-phase QA 파이프라인
+qa-engineer  →  verifier
+(진단·리포트)   (독립 재확인·trust_score)
 ```
 
 ### 에이전트별 역할
@@ -52,7 +55,8 @@ qa-engineer      ← 배포 후 API + 브라우저 검증
 | **ai-analyst** | Groq AI(llama-3.3-70b) 기반 뉴스 요약·종목 분석·ETF 추천·용어 설명 기능 설계 및 구현 | AI 분석 |
 | **deployer** | 빌드 검증(`tsc --noEmit`) → 환경변수 점검 → Vercel/Railway 배포 → 헬스체크 순서 준수 | 배포 자동화 |
 | **design-engineer** | Robinhood/Toss/Coinbase 디자인 패턴 참고해 React + Tailwind 컴포넌트 개선 | UI/UX |
-| **qa-engineer** | 배포 후 7개 API curl 체크 + 9개 브라우저 UI 체크. 회귀 버그 조기 발견 | QA |
+| **qa-engineer** | 배포 후 API curl 체크 + 구조화 JSON 리포트 출력. **read-only** — 코드 수정/push 불가, GET 요청만 허용 | QA |
+| **verifier** | QA 리포트를 독립적으로 재실행해 trust_score 산출. 교차검증으로 QA 오진 방지 | QA 검증 |
 
 ### 오케스트레이터 라우팅 기준
 
@@ -72,9 +76,10 @@ qa-engineer      ← 배포 후 API + 브라우저 검증
 1. orchestrator가 복합 요청으로 분류
 2. ai-analyst → Groq 프롬프트 설계 + API 엔드포인트 스펙 작성
 3. feature-builder → ai-analyst 산출물 받아 React UI + NestJS 연동 구현
-4. qa-engineer → 구현된 기능 API + 브라우저 검증
-5. deployer → 검증 통과 후 Vercel/Railway 배포
-6. orchestrator → 전체 결과 종합 보고
+4. qa-engineer → 구현된 기능 API 검증 (구조화 JSON 리포트, read-only)
+5. verifier → QA 리포트 독립 재확인 (trust_score ≥ 0.8 시 채택)
+6. deployer → 검증 통과 후 Vercel/Railway 배포
+7. orchestrator → 전체 결과 종합 보고
 ```
 
 **데이터 이상 감지 요청:**
@@ -276,7 +281,8 @@ financialManagement/
 │   │   ├── ai-analyst.md        # Groq AI 기능 설계/구현
 │   │   ├── deployer.md          # Vercel + Railway 배포
 │   │   ├── design-engineer.md   # UI/UX 개선
-│   │   └── qa-engineer.md       # 배포 후 API + 브라우저 QA
+│   │   ├── qa-engineer.md       # 배포 후 API QA (read-only, 구조화 리포트)
+│   │   └── verifier.md          # QA 리포트 독립 재검증 (trust_score 산출)
 │   └── skills/
 │       ├── finance-orchestrate/ # 오케스트레이터 트리거 스킬
 │       ├── auto-deploy/         # 배포 자동화 스킬
