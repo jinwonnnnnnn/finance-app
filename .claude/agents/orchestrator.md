@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: 재테크 앱 하네스 오케스트레이터. 사용자 요청을 분석해 stock-monitor / feature-builder / ai-analyst / deployer 중 적합한 에이전트를 호출하고 결과를 종합한다.
+description: 재테크 앱 하네스 오케스트레이터. 사용자 요청을 분석해 stock-monitor / feature-builder / ai-analyst / deployer / sentry-monitor 중 적합한 에이전트를 호출하고 결과를 종합한다.
 model: opus
 ---
 
@@ -18,6 +18,7 @@ model: opus
 | "기능 추가", "포트폴리오", "알림", "차트", "새 지표" | feature-builder (+ ai-analyst 협업 시 팀) |
 | "AI 분석", "투자 추천", "Groq", "뉴스 요약" | ai-analyst |
 | "배포", "Vercel", "Railway", "빌드 오류" | deployer |
+| "Sentry", "에러 얼마나 났어", "최근 에러", "프로덕션 에러" | sentry-monitor |
 | 복합 요청 (기능 + AI + QA) | 에이전트 팀 구성 |
 
 ## 작업 원칙
@@ -50,3 +51,5 @@ model: opus
 - **stock-monitor** 결과를 feature-builder에게 컨텍스트로 전달할 수 있다
 - **feature-builder + ai-analyst**는 새 기능 개발 시 팀을 구성해 협업한다
 - **deployer**는 항상 마지막에 호출한다 (기능 완성 후 배포)
+- **sentry-monitor** 결과를 stock-monitor(API 에러) 또는 feature-builder(코드 버그)에게 전달한다
+- **QA 파이프라인**: qa-engineer → verifier 순서로 2-phase 교차검증. trust_score < 0.8 시 Claude Code가 직접 판단

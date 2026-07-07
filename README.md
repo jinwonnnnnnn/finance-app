@@ -43,6 +43,10 @@ design-engineer  ← UI/UX 개선 전담
     ▼  2-phase QA 파이프라인
 qa-engineer  →  verifier
 (진단·리포트)   (독립 재확인·trust_score)
+
+    ▼
+sentry-monitor  ← 프로덕션 에러 모니터링
+(Sentry API 조회 → 스택트레이스 분석 → fix 에이전트 라우팅)
 ```
 
 ### 에이전트별 역할
@@ -211,6 +215,7 @@ GitHub Issues → 새 이슈 생성 → 'claude' 라벨 부착
 | Vercel | 프론트엔드 + `/api/yf-proxy` 서버리스 함수 |
 | GitHub Actions | CI / QA / Loop Engineering 자동화 |
 | Claude Code | 하네스 오케스트레이터 (에이전트 팀 조율) |
+| Sentry | 프론트엔드 + 백엔드 프로덕션 에러 모니터링 |
 
 ---
 
@@ -221,17 +226,20 @@ GitHub Issues → 새 이슈 생성 → 'claude' 라벨 부착
     │
     ▼
 Vercel  (finance-app-jw.vercel.app)
+    │                                               Sentry (finance-frontend)
+    ├── @sentry/react  ──────────────────────────→  에러 캡처 · 성능 추적
     │
-    ├── /api/yf-proxy  ──────────────────────→  Yahoo Finance (search)
-    │   Vercel 서버리스 함수                     query2.finance.yahoo.com
+    ├── /api/yf-proxy  ──────────────────────────→  Yahoo Finance (search)
+    │   Vercel 서버리스 함수                          query2.finance.yahoo.com
     │   Railway IP 차단 우회
     │
-    └── /api/*  ─────────────────────────────→  Railway Backend
-                                                    │
-                                                    ├── PostgreSQL
-                                                    ├── Finnhub API       ← US 주식
-                                                    ├── Yahoo Finance     ← KR 차트/시세
-                                                    └── Groq AI API       ← AI 분석
+    └── /api/*  ──────────────────────────────────→  Railway Backend
+                                                        │                    Sentry (finance-backend)
+                                                        ├── @sentry/nestjs ─→ 미처리 예외 캡처
+                                                        ├── PostgreSQL
+                                                        ├── Finnhub API       ← US 주식
+                                                        ├── Yahoo Finance     ← KR 차트/시세
+                                                        └── Groq AI API       ← AI 분석
 ```
 
 **KR 주식 데이터 흐름:**
