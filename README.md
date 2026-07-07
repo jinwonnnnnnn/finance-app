@@ -57,6 +57,7 @@ qa-engineer  →  verifier
 | **design-engineer** | Robinhood/Toss/Coinbase 디자인 패턴 참고해 React + Tailwind 컴포넌트 개선 | UI/UX |
 | **qa-engineer** | 배포 후 API curl 체크 + 구조화 JSON 리포트 출력. **read-only** — 코드 수정/push 불가, GET 요청만 허용 | QA |
 | **verifier** | QA 리포트를 독립적으로 재실행해 trust_score 산출. 교차검증으로 QA 오진 방지 | QA 검증 |
+| **sentry-monitor** | Sentry API로 프로덕션 에러 조회 · 스택트레이스 분석 · fix 에이전트 라우팅 | 에러 모니터링 |
 
 ### 오케스트레이터 라우팅 기준
 
@@ -282,7 +283,8 @@ financialManagement/
 │   │   ├── deployer.md          # Vercel + Railway 배포
 │   │   ├── design-engineer.md   # UI/UX 개선
 │   │   ├── qa-engineer.md       # 배포 후 API QA (read-only, 구조화 리포트)
-│   │   └── verifier.md          # QA 리포트 독립 재검증 (trust_score 산출)
+│   │   ├── verifier.md          # QA 리포트 독립 재검증 (trust_score 산출)
+│   │   └── sentry-monitor.md    # Sentry 에러 조회 + 코드 연관 분석
 │   └── skills/
 │       ├── finance-orchestrate/ # 오케스트레이터 트리거 스킬
 │       ├── auto-deploy/         # 배포 자동화 스킬
@@ -337,6 +339,7 @@ KAKAO_CLIENT_SECRET=
 CLIENT_URL=http://localhost:5173
 PORT=4000
 VERCEL_PROXY=https://finance-app-jw.vercel.app/api/yf-proxy
+SENTRY_DSN=                    # Sentry 프로젝트 DSN (백엔드용)
 ```
 
 ---

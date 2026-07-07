@@ -30,3 +30,4 @@ QA 요청 시 반드시 아래 순서를 따른다:
 | 2026-07-01 | 초기 하네스 구성 | 전체 | 재테크 앱 개발 자동화 체계 구축 |
 | 2026-07-01 | qa-engineer 에이전트 추가 | agents/qa-engineer.md | 배포 후 브라우저+API 자동 QA 체계 구축 |
 | 2026-07-06 | qa-engineer 역할 제한 + verifier 에이전트 추가 | agents/ | QA 범위 이탈·무단 push 방지, 2-phase 교차검증 체계 구축 |
+| 2026-07-08 | Sentry 프론트+백엔드 연동 + sentry-monitor 에이전트 추가 | frontend/backend/agents/ | 프로덕션 에러 모니터링 체계 구축 |

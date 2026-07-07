@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import * as Sentry from '@sentry/react';
 
 interface User {
   id: string;
@@ -35,6 +36,7 @@ export const useAuthStore = create<AuthStore>()(
       setAuth: (user, accessToken, refreshToken) => {
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        Sentry.setUser({ id: user.id, email: user.email, username: user.nickname });
         set({ user, accessToken, refreshToken });
       },
 
@@ -46,6 +48,7 @@ export const useAuthStore = create<AuthStore>()(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('auth-storage');
+        Sentry.setUser(null);
         set({ user: null, accessToken: null, refreshToken: null });
       },
     }),
