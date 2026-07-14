@@ -172,10 +172,13 @@ GitHub Issues → 새 이슈 생성 → 'claude' 라벨 부착
 | **미국 주식 (US)** | Finnhub API — 실시간 시세 + 차트 + 종목 검색 |
 | **국내 주식 (KR)** | Yahoo Finance — 실시간 시세 + 차트 + 종목 검색 |
 | **검색 자동완성** | 300ms 디바운스 드롭다운, 키보드 방향키 + Enter 선택 |
+| **코인** | CoinGecko API — 실시간 시세 · 차트 · 시가총액 Top 코인 |
 | **AI 투자 분석** | Groq AI(llama-3.3-70b) — 뉴스 요약 · 종목 분석 · ETF 추천 |
 | **금융 용어 사전** | 용어 해설 + AI Q&A |
+| **커뮤니티** | 게시글 · 댓글 · 좋아요 · 수정/소프트삭제 (작성자 본인만) |
 | **관심종목 관리** | 즐겨찾기 추가 · 대시보드 모니터링 |
 | **소셜 로그인** | Google OAuth · 카카오 OAuth |
+| **에러 모니터링** | Sentry 프론트+백엔드 연동 — 프로덕션 에러 자동 추적 |
 
 ---
 
@@ -206,6 +209,8 @@ GitHub Issues → 새 이슈 생성 → 'claude' 라벨 부착
 | Groq SDK (llama-3.3-70b-versatile) | AI 투자 분석 · 뉴스 요약 · 용어 설명 |
 | Finnhub API | 미국 주식 시세 · 검색 · 뉴스 |
 | Yahoo Finance HTTP API | 국내 주식 시세 · 차트 · 검색 |
+| CoinGecko API | 코인 실시간 시세 · 차트 · 시가총액 |
+| Sentry | 프론트+백엔드 에러 모니터링 |
 
 ### 인프라
 

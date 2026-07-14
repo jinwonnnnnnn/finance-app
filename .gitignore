@@ -40,3 +40,7 @@ coverage/
 postgres_data/
 .vercel
 .env*
+
+# Root-level stray files (monorepo — actual package.json lives in frontend/ and backend/)
+/package.json
+/package-lock.json
