@@ -133,7 +133,8 @@ export default function CoinPage() {
                     <div key={i} className="bg-[#111318] border border-white/[0.06] rounded-xl p-4 animate-pulse h-16" />
                   ))
                 : filtered.map((coin, i) => {
-                    const up = coin.price_change_percentage_24h >= 0;
+                    const pct = coin.price_change_percentage_24h ?? 0;
+                    const up = pct >= 0;
                     const isSelected = selected?.id === coin.id;
                     return (
                       <motion.button
@@ -156,9 +157,9 @@ export default function CoinPage() {
                           <p className="text-slate-500 text-xs uppercase">{coin.symbol}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-white text-sm font-semibold">{fmtPrice(coin.current_price)}</p>
+                          <p className="text-white text-sm font-semibold">{fmtPrice(coin.current_price ?? 0)}</p>
                           <p className={`text-xs font-medium ${up ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {up ? '+' : ''}{coin.price_change_percentage_24h.toFixed(2)}%
+                            {up ? '+' : ''}{pct.toFixed(2)}%
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0 hidden sm:block">
@@ -191,9 +192,9 @@ export default function CoinPage() {
                   </div>
 
                   {/* 가격 */}
-                  <p className="text-2xl font-bold text-white mb-1">{fmtPrice(selected.current_price)}</p>
+                  <p className="text-2xl font-bold text-white mb-1">{fmtPrice(selected.current_price ?? 0)}</p>
                   <p className={`text-sm font-medium mb-4 ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {isUp ? '▲' : '▼'} {Math.abs(selected.price_change_percentage_24h).toFixed(2)}% (24h)
+                    {isUp ? '▲' : '▼'} {Math.abs(selected.price_change_percentage_24h ?? 0).toFixed(2)}% (24h)
                   </p>
 
                   {/* 기간 선택 */}
