@@ -1,18 +1,32 @@
-FROM node:22-slim
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+COPY backend/package.json backend/pnpm-lock.yaml ./
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+
+COPY backend/prisma ./prisma
+RUN npx prisma generate
+
+COPY backend/ .
+RUN pnpm build
+
+# --- runtime ---
+FROM node:22-alpine
+
+RUN apk add --no-cache netcat-openbsd
 
 WORKDIR /app
 
-RUN npm install -g pnpm@9
+COPY backend/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY backend/prisma ./prisma
+COPY backend/prisma.config.ts ./
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --no-frozen-lockfile
+COPY backend/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
-COPY prisma ./prisma
-RUN npx prisma generate
+ENV NODE_ENV=production
+EXPOSE 8080
 
-COPY . .
-RUN pnpm build
-RUN ls -la /app/dist/
-
-EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push && node /app/dist/src/main"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -4,7 +4,7 @@
 
 재테크 입문자를 위한 풀스택 주식/투자 학습 앱.
 - **프론트**: React + TypeScript + Vite (Vercel 배포)
-- **백엔드**: NestJS + Prisma + PostgreSQL (Railway 배포)
+- **백엔드**: NestJS + Prisma + PostgreSQL (Fly.io 배포)
 - **AI**: Groq SDK (llama-3.3-70b-versatile)
 - **주식 데이터**: Finnhub (US) + Yahoo Finance (KR)
 
@@ -31,3 +31,4 @@ QA 요청 시 반드시 아래 순서를 따른다:
 | 2026-07-01 | qa-engineer 에이전트 추가 | agents/qa-engineer.md | 배포 후 브라우저+API 자동 QA 체계 구축 |
 | 2026-07-06 | qa-engineer 역할 제한 + verifier 에이전트 추가 | agents/ | QA 범위 이탈·무단 push 방지, 2-phase 교차검증 체계 구축 |
 | 2026-07-08 | Sentry 프론트+백엔드 연동 + sentry-monitor 에이전트 추가 | frontend/backend/agents/ | 프로덕션 에러 모니터링 체계 구축 |
+| 2026-08-09 | Railway → Fly.io 백엔드 마이그레이션 | Dockerfile/fly.toml/docker-entrypoint.sh | Railway 무료 티어 종료, Fly.io + Neon DB로 전환 |
