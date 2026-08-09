@@ -2,7 +2,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+RUN npm install -g pnpm@10.28.0 && pnpm install --no-frozen-lockfile
 
 COPY backend/prisma ./prisma
 RUN npx prisma generate
