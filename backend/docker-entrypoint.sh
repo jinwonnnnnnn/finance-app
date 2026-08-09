@@ -22,4 +22,27 @@ fi
 echo "[startup] Syncing DB schema..."
 npx prisma db push 2>&1 || echo "[startup] DB push warning (may be first run)"
 
+echo "[startup] Ensuring test user exists..."
+node -e "
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
+(async () => {
+  const prisma = new PrismaClient();
+  const hashed = await bcrypt.hash('test', 10);
+  await prisma.user.upsert({
+    where: { email: 'test@test.com' },
+    update: {},
+    create: {
+      email: 'test@test.com',
+      password: hashed,
+      nickname: '테스트유저',
+      provider: 'local',
+      surveyDone: true,
+    },
+  });
+  await prisma.\$disconnect();
+  console.log('[startup] Test user ready: test@test.com / test');
+})().catch(e => console.warn('[startup] Test user warning:', e.message));
+" 2>&1 || echo "[startup] Test user setup skipped"
+
 exec node dist/src/main

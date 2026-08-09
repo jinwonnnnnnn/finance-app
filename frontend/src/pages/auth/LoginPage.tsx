@@ -30,9 +30,26 @@ export default function LoginPage() {
   };
 
   const handleOAuth = (provider: 'google' | 'kakao') => {
-    // OAuth 리다이렉트는 Vercel 프록시를 거치면 302 체인이 깨지므로 Railway 직접 호출
-    const backendUrl = 'https://precious-gentleness-production.up.railway.app';
+    // OAuth 리다이렉트는 Vercel 프록시를 거치면 302 체인이 깨지므로 백엔드 직접 호출
+    const backendUrl = 'https://finance-mgmt-jw.fly.dev';
     window.location.href = `${backendUrl}/api/auth/${provider}`;
+  };
+
+  const handleGuestLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data: tokens } = await api.post('/auth/login', { email: 'test@test.com', password: 'test' });
+      const { data: user } = await api.get('/users/me', {
+        headers: { Authorization: `Bearer ${tokens.accessToken}` },
+      });
+      setAuth(user, tokens.accessToken, tokens.refreshToken);
+      navigate(user.surveyDone ? '/dashboard' : '/onboarding');
+    } catch {
+      setError('게스트 계정에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -138,6 +155,24 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* 게스트 체험 안내 */}
+          <div className="bg-indigo-950/30 border border-indigo-500/20 rounded-2xl px-4 py-3 mb-4">
+            <p className="text-indigo-300 text-xs font-medium mb-1">체험 계정</p>
+            <p className="text-slate-400 text-xs">
+              이메일: <span className="text-slate-200 font-mono">test@test.com</span>
+              &nbsp;·&nbsp;
+              비밀번호: <span className="text-slate-200 font-mono">test</span>
+            </p>
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={loading}
+              className="mt-2 w-full text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-400/50 rounded-xl py-1.5 transition disabled:opacity-50"
+            >
+              {loading ? '로그인 중...' : '게스트로 바로 체험하기 →'}
+            </button>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
               <label className="block text-xs text-slate-500 mb-1.5 font-medium">이메일</label>
@@ -146,7 +181,7 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
-                placeholder="example@email.com"
+                placeholder="test@test.com"
                 required
               />
             </div>
@@ -157,7 +192,7 @@ export default function LoginPage() {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="w-full bg-[#111318] border border-white/[0.07] rounded-2xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition text-sm"
-                placeholder="비밀번호 입력"
+                placeholder="test (체험 계정)"
                 required
               />
             </div>
