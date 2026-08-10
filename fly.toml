@@ -23,9 +23,9 @@ primary_region = "nrt"
   [[services.http_checks]]
     interval = "30s"
     timeout = "10s"
-    grace_period = "60s"
+    grace_period = "120s"
     method = "GET"
-    path = "/api"
+    path = "/health"
 
   [services.concurrency]
     hard_limit = 25

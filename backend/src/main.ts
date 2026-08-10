@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 모든 API 엔드포인트에 /api 접두사 추가 (예: /auth/login → /api/auth/login)
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', { exclude: ['health'] });
 
   // 요청 유효성 검사: DTO에 정의된 필드만 허용(whitelist), 자동 타입변환(transform)
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
