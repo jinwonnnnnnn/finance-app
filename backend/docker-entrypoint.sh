@@ -25,9 +25,13 @@ npx prisma db push 2>&1 || echo "[startup] DB push warning (may be first run)"
 echo "[startup] Ensuring test user exists..."
 node -e "
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 (async () => {
-  const prisma = new PrismaClient();
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({ adapter });
   const hashed = await bcrypt.hash('test', 10);
   await prisma.user.upsert({
     where: { email: 'test@test.com' },
@@ -41,6 +45,7 @@ const bcrypt = require('bcrypt');
     },
   });
   await prisma.\$disconnect();
+  await pool.end();
   console.log('[startup] Test user ready: test@test.com / test');
 })().catch(e => console.warn('[startup] Test user warning:', e.message));
 " 2>&1 || echo "[startup] Test user setup skipped"
